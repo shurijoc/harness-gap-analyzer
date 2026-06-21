@@ -1102,9 +1102,16 @@ def ensure_sentinel(template_path: Path) -> str:
     return new_text
 
 
-def inject(text: str, title: str, body_html: str, scope: str) -> str:
+def inject(text: str, title: str, body_html: str, scope: str, lang: str = "en") -> str:
     """Replace title, h1, syslabel, meta date/scope, then sentinel with body_html."""
     date = datetime.now().strftime("%Y-%m-%d")
+    # <html lang="..."> — swap to current report language
+    text = re.sub(
+        r'<html lang="[a-z]{2}"',
+        f'<html lang="{lang}"',
+        text,
+        count=1,
+    )
     # <title>
     text = re.sub(
         r"<title>[^<]*</title>",
@@ -1258,7 +1265,7 @@ def main() -> int:
     # 5. Inject into template
     tpl_path = Path(args.template)
     template_text = ensure_sentinel(tpl_path)
-    final_html = inject(template_text, args.title, body_html, args.scope)
+    final_html = inject(template_text, args.title, body_html, args.scope, lang)
 
     # 6. Write
     out_path = Path(args.output)
