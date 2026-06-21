@@ -1,0 +1,395 @@
+meta:
+  catalog_version: 1
+  updated: 2026-06-20
+  source: research/openaiSources.md
+
+# Canonical OpenAI / agent-ecosystem knowledge sources for the
+# "Claude Code best-practices gap analyzer" cross-reference monitoring.
+#
+# Schema parity with anthropic.yaml:
+#   cadence: live | weekly | monthly | yearly
+#   method:  HTML | git_api
+#   stability: stable | moving | blog
+#   confidence: HIGH | MED | LOW
+#   category: product-docs | api-docs | blog | repo | spec | whitepaper
+#
+# Source cadence normalization from research notes:
+#   very-high / high -> weekly
+#   medium / medium-high -> monthly
+#   low -> yearly
+
+sources:
+
+  # ============================================================
+  # 1. OpenAI Codex CLI
+  # ============================================================
+  - id: openai-codex-repo
+    url: https://github.com/openai/codex
+    api_url: https://api.github.com/repos/openai/codex
+    covers: Codex CLI - OpenAI's terminal-native coding agent (Rust, 96%). README, docs/, AGENTS.md at repo root. 7,647 commits, 856 releases.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/openai/codex
+    confidence: HIGH
+    category: repo
+
+  - id: openai-codex-agents-md
+    url: https://github.com/openai/codex/blob/main/AGENTS.md
+    api_url: https://api.github.com/repos/openai/codex/contents/AGENTS.md
+    covers: OpenAI's own AGENTS.md spec applied to Codex
+    cadence: monthly
+    method: git_api
+    stability: stable
+    cache_key: gh/openai/codex/AGENTS.md
+    confidence: HIGH
+    category: repo
+
+  # ============================================================
+  # 2. OpenAI Agents SDK - Python
+  # ============================================================
+  - id: openai-agents-python-repo
+    url: https://github.com/openai/openai-agents-python
+    api_url: https://api.github.com/repos/openai/openai-agents-python
+    covers: Multi-agent framework. Concepts - Agents, Sandbox Agents, Handoffs, Tools, Guardrails, HITL, Sessions, Tracing, Realtime/Voice. 27.3k stars, 103 releases.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/openai/openai-agents-python
+    confidence: HIGH
+    category: repo
+
+  - id: openai-agents-python-docs
+    url: https://openai.github.io/openai-agents-python/
+    covers: Full MkDocs site. Sections - Agents, Tools, Handoffs, Sandbox Agents, Sessions, Guardrails, Tracing, MCP, Realtime/Voice, Running, HITL, Results, Configuration.
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: openai.github.io/openai-agents-python
+    confidence: HIGH
+    category: api-docs
+
+  - id: openai-agents-python-multi-agent
+    url: https://openai.github.io/openai-agents-python/multi_agent/
+    covers: Two canonical orchestration patterns - (a) Agents-as-tools via Agent.as_tool() - manager keeps conversation. (b) Handoffs - triage routes to specialist. Plus deterministic code-driven orchestration. Direct parallel to Claude Code sub-agent design.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: openai.github.io/openai-agents-python/multi_agent
+    confidence: HIGH
+    category: api-docs
+
+  # ============================================================
+  # 3. OpenAI Agents SDK - JS/TS
+  # ============================================================
+  - id: openai-agents-js-repo
+    url: https://github.com/openai/openai-agents-js
+    api_url: https://api.github.com/repos/openai/openai-agents-js
+    covers: JS/TS port of Agents SDK. Node 22+, Deno, Bun, experimental Cloudflare Workers. 3.3k stars, 58 releases.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/openai/openai-agents-js
+    confidence: HIGH
+    category: repo
+
+  - id: openai-agents-js-docs
+    url: https://openai.github.io/openai-agents-js/
+    covers: Agents, Models, Tools, Guardrails, Streaming, Orchestration, Handoffs, Results, HITL, Sessions, Context Management, MCP, Tracing, Sandbox Agents, Voice, Extensions (AI SDK, Twilio, CF).
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: openai.github.io/openai-agents-js
+    confidence: HIGH
+    category: api-docs
+
+  # ============================================================
+  # 4. OpenAI Cookbook (domain moved)
+  # ============================================================
+  - id: openai-cookbook-root
+    url: https://developers.openai.com/cookbook
+    covers: Recipes index. MOVED from cookbook.openai.com (308 redirect).
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/cookbook
+    confidence: HIGH
+    category: api-docs
+    notes: Update any monitor still pointing at cookbook.openai.com.
+
+  - id: cookbook-agent-improvement-loop
+    url: https://developers.openai.com/cookbook/examples/agents_sdk/agent_improvement_loop
+    covers: Traces -> Evals (Promptfoo) -> Codex handoff doc -> harness change. Closest OpenAI analogue to a "gap analyzer feedback loop" - directly relevant to the analyzer this catalog supports.
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: developers.openai.com/cookbook/agent_improvement_loop
+    confidence: HIGH
+    category: api-docs
+
+  # ============================================================
+  # 5. OpenAI Platform Docs (domain moved)
+  # ============================================================
+  - id: openai-platform-docs-root
+    url: https://developers.openai.com/api/docs/
+    covers: Canonical API reference. MOVED from platform.openai.com/docs (301 redirect).
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/api/docs
+    confidence: HIGH
+    category: api-docs
+
+  - id: openai-agents-guide
+    url: https://developers.openai.com/api/docs/guides/agents
+    covers: Agents SDK guide. Children - /quickstart, /define-agents, /running-agents, /sandboxes, /orchestration, /guardrails-approvals, /results, /integrations-observability. Plus /agent-evals and /voice-agents siblings.
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/api/docs/guides/agents
+    confidence: HIGH
+    category: api-docs
+
+  - id: openai-tools-mcp
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+    covers: Connectors + remote MCP servers. OAuth, allowed_tools, approval workflows, 8 built-in connectors (Gmail, Calendar, Dropbox, Teams, SharePoint, etc.), Secure MCP Tunnel for private servers, prompt injection guidance.
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/api/docs/guides/tools-connectors-mcp
+    confidence: HIGH
+    category: api-docs
+
+  - id: openai-function-calling
+    url: https://developers.openai.com/api/docs/guides/function-calling
+    covers: Tool definition (JSON schema), namespaces, tool search / deferred loading, parallel calls, streaming, strict mode, custom freeform-text tools, Lark/Regex CFG. Best-practice - keep initially available functions small for accuracy.
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/api/docs/guides/function-calling
+    confidence: HIGH
+    category: api-docs
+
+  - id: openai-prompt-caching
+    url: https://developers.openai.com/api/docs/guides/prompt-caching
+    covers: Auto cache at 1024+ tokens. Position stable content first. 5-10min in-memory, up to 24h extended. prompt_cache_key for routing. Up to 80% latency / 90% cost reduction.
+    cadence: monthly
+    method: HTML
+    stability: moving
+    cache_key: developers.openai.com/api/docs/guides/prompt-caching
+    confidence: HIGH
+    category: api-docs
+
+  # ============================================================
+  # 6. AGENTS.md spec
+  # ============================================================
+  - id: agents-md-spec
+    url: https://agents.md
+    covers: Open format for agent instructions (separate from README.md). Hierarchical (nested AGENTS.md takes precedence). 60k+ projects. Stewarded by Agentic AI Foundation (Linux Foundation). Contributors - OpenAI Codex, Amp, Google Jules, Cursor, Factory. Supported by Claude Code, Codex, Cursor, Devin, Jules, etc.
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: agents.md
+    confidence: HIGH
+    category: spec
+
+  # ============================================================
+  # 7. Cursor
+  # ============================================================
+  - id: cursor-docs-root
+    url: https://cursor.com/docs
+    covers: Agent, Rules, MCP, Skills, CLI. (Redirect from docs.cursor.com)
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: cursor.com/docs
+    confidence: HIGH
+    category: product-docs
+
+  - id: cursor-rules
+    url: https://cursor.com/docs/context/rules
+    covers: 4 rule types - Project Rules (.cursor/rules), User Rules, Team Rules, AGENTS.md. 4 application modes - Always, Intelligently, by glob, @-manual. Nested AGENTS.md with precedence - directly parallel to Claude Code memory/CLAUDE.md hierarchy.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: cursor.com/docs/context/rules
+    confidence: HIGH
+    category: product-docs
+
+  # ============================================================
+  # 8. Aider
+  # ============================================================
+  - id: aider-docs
+    url: https://aider.chat
+    covers: Install, LLM connection, config, troubleshooting, leaderboards.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: aider.chat
+    confidence: HIGH
+    category: product-docs
+
+  - id: aider-conventions
+    url: https://aider.chat/docs/usage/conventions.html
+    covers: CONVENTIONS.md pattern - /read CONVENTIONS.md or .aider.conf.yml `read:` to inject coding standards. Aider's analog to AGENTS.md (not a formal spec - user-facing prompt feature).
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: aider.chat/docs/usage/conventions
+    confidence: HIGH
+    category: product-docs
+
+  - id: aider-repomap
+    url: https://aider.chat/docs/repomap.html
+    covers: Repo map - graph-ranked concise summary of classes/funcs/signatures (1k token default). Aider's distinctive context strategy - worth cross-referencing against Claude Code's read/search-on-demand model.
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: aider.chat/docs/repomap
+    confidence: HIGH
+    category: product-docs
+
+  # ============================================================
+  # 9. Continue / Roo / Cline
+  # ============================================================
+  - id: continue-docs
+    url: https://docs.continue.dev
+    covers: Quickstart, TUI Mode, Headless Mode, Configuration, Tool Permissions. VS Code, JetBrains, CLI.
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: docs.continue.dev
+    confidence: MED
+    category: product-docs
+    notes: Project shifted to read-only at 2.0.0 - lower priority for monitoring.
+
+  - id: roocode-docs
+    url: https://roocodeinc.github.io/Roo-Code/
+    covers: Modes (Architect/Code/Orchestrator), custom instructions, MCP, rules. (Redirect from docs.roocode.com.)
+    cadence: yearly
+    method: HTML
+    stability: moving
+    cache_key: roocodeinc.github.io/Roo-Code
+    confidence: MED
+    category: product-docs
+    notes: Original extension shut down 2026-05-15; docs point to forks ZooCode and Cline. Monitor primarily for "mode" pattern reference.
+
+  - id: cline-docs
+    url: https://docs.cline.bot
+    covers: Cline SDK + CLI + Kanban + VS Code/JetBrains. Rules (.clinerules), .clineignore, MCP, Plan/Act mode, Skills, Plugins. llms.txt index available.
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: docs.cline.bot
+    confidence: HIGH
+    category: product-docs
+    notes: Use llms.txt for index.
+
+  - id: cline-rules
+    url: https://docs.cline.bot/customization/cline-rules.md
+    covers: .clinerules format - direct parallel to .cursor/rules.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.cline.bot/cline-rules
+    confidence: HIGH
+    category: product-docs
+
+  - id: cline-plan-act
+    url: https://docs.cline.bot/core-workflows/plan-and-act.md
+    covers: Dual-mode (Plan->Act). Parallel to Claude Code plan-mode pattern.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.cline.bot/plan-and-act
+    confidence: HIGH
+    category: product-docs
+
+  - id: cline-skills
+    url: https://docs.cline.bot/customization/skills.md
+    covers: Modular instruction sets - direct parallel to Claude Code skills.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.cline.bot/skills
+    confidence: HIGH
+    category: product-docs
+
+  # ============================================================
+  # 10. Devin (Cognition)
+  # ============================================================
+  - id: devin-docs
+    url: https://docs.devin.ai
+    covers: Devin AI software engineer. Knowledge, Playbooks, AGENTS.md, Cascade memories, CLI rules, Slack/Teams integrations. llms.txt index available.
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: docs.devin.ai
+    confidence: HIGH
+    category: product-docs
+    notes: Use llms.txt for index.
+
+  - id: devin-knowledge
+    url: https://docs.devin.ai/onboard-devin/knowledge-onboarding.md
+    covers: Persistent instructions Devin references across sessions. Parallel to Claude Code memory.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.devin.ai/knowledge-onboarding
+    confidence: HIGH
+    category: product-docs
+
+  - id: devin-playbooks
+    url: https://docs.devin.ai/product-guides/creating-playbooks.md
+    covers: Reusable prompt library - parallel to Claude Code skills/commands.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.devin.ai/creating-playbooks
+    confidence: HIGH
+    category: product-docs
+
+  - id: devin-agents-md
+    url: https://docs.devin.ai/onboard-devin/agents-md.md
+    covers: AGENTS.md adoption in Devin (directory-scoped).
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: docs.devin.ai/agents-md
+    confidence: HIGH
+    category: product-docs
+
+  - id: devin-cli-rules
+    url: https://docs.devin.ai/cli/extensibility/rules.md
+    covers: Always-on instructions for Devin CLI - closest parallel to Claude Code rules/hooks split.
+    cadence: monthly
+    method: HTML
+    stability: stable
+    cache_key: docs.devin.ai/cli/rules
+    confidence: HIGH
+    category: product-docs
+
+  # ============================================================
+  # Blog posts / white papers
+  # ============================================================
+  - id: openai-practical-guide-agents
+    url: https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/
+    covers: OpenAI's white paper on agent design (orchestration, guardrails, tools). Frequently cited as canonical OpenAI POV.
+    cadence: yearly
+    method: HTML
+    stability: stable
+    cache_key: openai.com/business/practical-guide-to-building-ai-agents
+    confidence: MED
+    category: whitepaper
+    notes: Bot-blocked - WebFetch returned 403. Use WebSearch to detect new versions; archive PDF manually.
+
+# ---------- Fetch policy ----------
+fetch_policy:
+  user_agent: "harness-gap-analyzer/1.0 (+https://github.com/shurijoc/harness-gap-analyzer)"
+  follow_redirects: true
+  github:
+    prefer: gh_api    # use `gh api repos/...` for github.com sources
+    auth: gh_cli      # rely on logged-in gh; falls back to anonymous w/ rate limit
+  conditional_get: true   # send If-Modified-Since / ETag, skip body on 304
+  diff_strategy: content_hash   # cache_key + sha256(body); only re-summarize on hash change
+  rate_limit_backoff: exponential  # space requests >=1s for bot-gated hosts (openai.com, anthropic.com)

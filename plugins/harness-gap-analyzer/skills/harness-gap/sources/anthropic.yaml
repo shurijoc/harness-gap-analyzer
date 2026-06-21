@@ -1,0 +1,591 @@
+meta:
+  catalog_version: 1
+  updated: 2026-06-20
+  source: research/anthropicSources.md
+
+# Catalog of canonical Anthropic knowledge sources monitored by the
+# "Claude Code best-practices gap analyzer" skill.
+#
+# Confidence:
+#   HIGH = URL fetched and confirmed 200 OK with expected content
+#   MED  = URL exists per index/blog list but specific slug returned 404 in a
+#          rate-limited probe; trust the listing, treat as transient
+#   LOW  = could not directly confirm; dropped unless an important spec
+#
+# Stability:
+#   stable  = canonical product URL, expected to outlive minor reorgs
+#   moving  = recently migrated (docs.claude.com -> code.claude.com /
+#             platform.claude.com); set a redirect-follow on fetch
+#   blog    = dated post, slug is stable but the post itself won't update
+#
+# Re-fetch cadence:
+#   live    = each run
+#   weekly  = once per 7 days
+#   monthly = once per 30 days
+#   yearly  = once per 365 days (blog posts that don't update)
+#
+# IMPORTANT: docs.claude.com 301-redirects to code.claude.com (product docs)
+# and 302-redirects to platform.claude.com (API docs). Always use the
+# post-redirect canonical URLs to avoid one extra hop per fetch.
+
+sources:
+
+  # ---------- 1) Claude Code product docs ----------
+  - id: cc-overview
+    url: https://code.claude.com/docs/en/overview
+    covers: Claude Code surfaces (terminal/VS Code/JetBrains/Desktop/Web), install paths, top-level capabilities map
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/overview
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-best-practices
+    url: https://code.claude.com/docs/en/best-practices
+    covers: Canonical Claude Code best-practices guide (context mgmt, verify-its-work, explore->plan->code, CLAUDE.md, permissions, subagents, parallel sessions, failure patterns)
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: code.claude.com/best-practices
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-llms-index
+    url: https://code.claude.com/docs/llms.txt
+    covers: Machine-readable index of every Claude Code doc page. Use to discover new pages on each run before fanning out
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/llms.txt
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-hooks
+    url: https://code.claude.com/docs/en/hooks
+    covers: Hooks lifecycle reference - 30+ events (SessionStart/PreToolUse/PostToolUse/Stop/ConfigChange/...), matchers, exit codes, JSON I/O, command/HTTP/MCP/prompt/agent hook types
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/hooks
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-hooks-guide
+    url: https://code.claude.com/docs/en/hooks-guide
+    covers: Conceptual hooks guide (when/why to use hooks vs CLAUDE.md vs skills)
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/hooks-guide
+    confidence: MED
+    category: product-docs
+
+  - id: cc-skills
+    url: https://code.claude.com/docs/en/skills
+    covers: Skills (SKILL.md), invocation control, subagent execution, dynamic context injection, bundled skills, commands->skills merge
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/skills
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-plugins
+    url: https://code.claude.com/docs/en/plugins
+    covers: Plugin authoring (plugin.json manifest, skills/agents/hooks/MCP/LSP/monitors), --plugin-dir, marketplace submission
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/plugins
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-plugins-reference
+    url: https://code.claude.com/docs/en/plugins-reference
+    covers: Full plugin schema, version management, skills-directory plugins, debugging tools
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/plugins-reference
+    confidence: MED
+    category: product-docs
+
+  - id: cc-subagents
+    url: https://code.claude.com/docs/en/sub-agents
+    covers: Subagents (per-task context isolation, model/tools restriction, user vs project level, delegation patterns)
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/sub-agents
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-slash-commands
+    url: https://code.claude.com/docs/en/commands
+    covers: Built-in commands (/help, /compact, /clear, /code-review, /debug, ...) and how custom commands map onto skills
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/commands
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-mcp
+    url: https://code.claude.com/docs/en/mcp
+    covers: Connecting Claude Code to MCP servers, scopes, transport, channels-as-MCP push pattern
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/mcp
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-settings
+    url: https://code.claude.com/docs/en/settings
+    covers: settings.json hierarchy (Managed > Local > Project > User), permissions, hooks block, model/env, managed policies
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/settings
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-permissions
+    url: https://code.claude.com/docs/en/permissions
+    covers: permissions.allow/ask/deny rules, tool-specific syntax (Bash, MCP, WebFetch), auto mode classifier
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/permissions
+    confidence: MED
+    category: product-docs
+
+  - id: cc-permission-modes
+    url: https://code.claude.com/docs/en/permission-modes
+    covers: plan / acceptEdits / auto / bypassPermissions modes and auto-mode classifier fallback thresholds
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/permission-modes
+    confidence: MED
+    category: product-docs
+
+  - id: cc-security
+    url: https://code.claude.com/docs/en/security
+    covers: Permission-based architecture, sandboxing, prompt-injection mitigations, MCP/IDE/cloud security, reporting via HackerOne
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/security
+    confidence: HIGH
+    category: product-docs
+
+  - id: cc-sandboxing
+    url: https://code.claude.com/docs/en/sandboxing
+    covers: /sandbox - filesystem + network isolation for Bash; defining sandbox boundaries
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/sandboxing
+    confidence: MED
+    category: product-docs
+
+  - id: cc-memory
+    url: https://code.claude.com/docs/en/memory
+    covers: CLAUDE.md authoring, auto-memory, @path imports, hierarchical resolution
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/memory
+    confidence: MED
+    category: product-docs
+
+  - id: cc-how-it-works
+    url: https://code.claude.com/docs/en/how-claude-code-works
+    covers: Agent loop, tools, context-window mechanics under the hood
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/how-claude-code-works
+    confidence: MED
+    category: product-docs
+
+  - id: cc-headless
+    url: https://code.claude.com/docs/en/headless
+    covers: Non-interactive mode (claude -p), --output-format, --allowedTools, CI patterns
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/headless
+    confidence: MED
+    category: product-docs
+
+  - id: cc-changelog
+    url: https://code.claude.com/docs/en/changelog
+    covers: Claude Code product changelog (rendered docs version)
+    cadence: weekly
+    method: HTML
+    stability: stable
+    cache_key: code.claude.com/changelog
+    confidence: MED
+    category: product-docs
+
+  # ---------- 2) Claude API / platform docs ----------
+  - id: api-tool-use
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+    covers: Client vs server tools, tool_choice, strict tool use, pricing per model, tool-use system-prompt token costs
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/tool-use/overview
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-prompt-caching
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+    covers: cache_control breakpoints, 5-min vs 1-hour cache writes, minimum cacheable prompt lengths per model, pricing
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/prompt-caching
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-batch
+    url: https://platform.claude.com/docs/en/build-with-claude/batch-processing
+    covers: Message Batches API (50% discount, async, up to 300k output tokens via beta header)
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/batch-processing
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-computer-use
+    url: https://platform.claude.com/docs/en/agents-and-tools/computer-use
+    covers: Computer use tool (screenshot/mouse/keyboard), beta header versions per model
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/computer-use
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-mcp-connector
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+    covers: Server-side MCP connector in Messages API (mcp-client-2025-11-20), MCPToolset configs, OAuth, denylist/allowlist patterns
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/mcp-connector
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-agent-sdk-overview
+    url: https://code.claude.com/docs/en/agent-sdk/overview
+    covers: Agent SDK (Python + TS), built-in tools, hooks/subagents/MCP/permissions/sessions, Agent SDK vs Client SDK vs Managed Agents
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: code.claude.com/agent-sdk/overview
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-models-overview
+    url: https://platform.claude.com/docs/en/about-claude/models/overview
+    covers: Current model lineup (Opus 4.8, Sonnet 4.6, Haiku 4.5, Fable 5, Mythos 5), context windows, pricing, deprecations, tokenizer notes
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/models/overview
+    confidence: HIGH
+    category: api-docs
+
+  - id: api-model-deprecations
+    url: https://platform.claude.com/docs/en/about-claude/model-deprecations
+    covers: Model retirement schedule (e.g., Opus 4.1 retires 2026-08-05). Critical for keeping agent guidance current.
+    cadence: weekly
+    method: HTML
+    stability: moving
+    cache_key: platform.claude.com/model-deprecations
+    confidence: MED
+    category: api-docs
+
+  # ---------- 3) Anthropic engineering blog ----------
+  - id: blog-engineering-index
+    url: https://www.anthropic.com/engineering
+    covers: Engineering blog index. Source of truth for discovering new posts. Re-list each run.
+    cadence: live
+    method: HTML
+    stability: stable
+    cache_key: anthropic.com/engineering
+    confidence: HIGH
+    category: blog
+
+  - id: blog-building-effective-agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    covers: Foundational "Building effective agents" - simple composable patterns over frameworks. (2024-12-19)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/building-effective-agents
+    confidence: HIGH
+    category: blog
+
+  - id: blog-context-engineering
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+    covers: Effective context engineering for AI agents. (2025-09-29)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/effective-context-engineering-for-ai-agents
+    confidence: HIGH
+    category: blog
+
+  - id: blog-multi-agent-research
+    url: https://www.anthropic.com/engineering/built-multi-agent-research-system
+    covers: How we built our multi-agent research system (Opus-lead + Sonnet-subagents +90% on internal eval; ~15x token cost). (2025-06-13)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/built-multi-agent-research-system
+    confidence: HIGH
+    category: blog
+
+  - id: blog-writing-tools-for-agents
+    url: https://www.anthropic.com/engineering/writing-tools-for-agents
+    covers: Writing effective tools for agents - with agents. Iterative tool-design loop. (2025-09-11)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/writing-tools-for-agents
+    confidence: HIGH
+    category: blog
+
+  - id: blog-think-tool
+    url: https://www.anthropic.com/engineering/claude-think-tool
+    covers: The "think" tool - dedicated thinking step inside tool-use loops. tau-Bench / SWE-Bench wins. (2025-03-20)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/claude-think-tool
+    confidence: HIGH
+    category: blog
+
+  - id: blog-swe-bench-sonnet
+    url: https://www.anthropic.com/engineering/swe-bench-sonnet
+    covers: Claude 3.5 Sonnet on SWE-bench Verified (49%) - Bash + Edit tool design, agent scaffolding. (2025-01-06)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/swe-bench-sonnet
+    confidence: HIGH
+    category: blog
+
+  - id: blog-desktop-extensions
+    url: https://www.anthropic.com/engineering/desktop-extensions
+    covers: Desktop Extensions (.mcpb) - one-click MCP server install for Claude Desktop. (2025-06-26)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/desktop-extensions
+    confidence: HIGH
+    category: blog
+
+  - id: blog-claude-code-auto-mode
+    url: https://www.anthropic.com/engineering/claude-code-auto-mode
+    covers: How we built Claude Code auto mode (classifier + injection probe; 0.4% FP / 17% FN on overeager actions). (2026-03-25)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/claude-code-auto-mode
+    confidence: HIGH
+    category: blog
+
+  - id: blog-cc-quality-postmortem
+    url: https://www.anthropic.com/engineering/an-update-on-recent-claude-code-quality-reports
+    covers: Postmortem on recent Claude Code quality reports. (2026-04-23)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/an-update-on-recent-claude-code-quality-reports
+    confidence: MED
+    category: blog
+    notes: Listed on engineering index 2026-04-23. Direct slug returned 404 in probe (likely WAF on automated fetch). Resolve via blog-engineering-index link extraction on each run.
+
+  - id: blog-scaling-managed-agents
+    url: https://www.anthropic.com/engineering/scaling-managed-agents
+    covers: Scaling Managed Agents - decoupling brain from hands. (2026-04-08)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/scaling-managed-agents
+    confidence: MED
+    category: blog
+    notes: Listed by title/date on engineering index but direct fetch 404 (likely WAF). Resolve via blog-engineering-index.
+
+  - id: blog-containing-claude
+    url: https://www.anthropic.com/engineering/containing-claude
+    covers: How we contain Claude across products (claude.ai, Claude Code, Cowork). Sandboxing & containment patterns.
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/containing-claude
+    confidence: MED
+    category: blog
+    notes: Direct fetch 404 (likely WAF). Resolve via blog-engineering-index.
+
+  - id: blog-parallel-c-compiler
+    url: https://www.anthropic.com/engineering/parallel-claudes-c-compiler
+    covers: Building a C compiler with parallel Claudes - multi-agent case study. (2026-02-05)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/parallel-claudes-c-compiler
+    confidence: MED
+    category: blog
+    notes: Direct fetch 404 (likely WAF). Resolve via blog-engineering-index.
+
+  - id: blog-demystifying-evals
+    url: https://www.anthropic.com/engineering/demystifying-evals
+    covers: Demystifying evals for AI agents. (2026-01-09)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: anthropic.com/engineering/demystifying-evals
+    confidence: MED
+    category: blog
+    notes: Direct fetch 404 (likely WAF). Resolve via blog-engineering-index.
+
+  - id: blog-how-anthropic-uses-cc
+    url: https://claude.com/blog/how-anthropic-teams-use-claude-code
+    covers: How Anthropic teams (eng, marketing, legal, data science, ...) use Claude Code in practice. (2025-07-24)
+    cadence: yearly
+    method: HTML
+    stability: blog
+    cache_key: claude.com/blog/how-anthropic-teams-use-claude-code
+    confidence: HIGH
+    category: blog
+    notes: Redirected from anthropic.com/news/ to claude.com/blog/. Use the post-redirect URL to skip a hop.
+
+  # ---------- 4) GitHub: anthropics/* repos ----------
+  # NOTE: GitHub returns less noise via the API than HTML. Prefer
+  # `gh api repos/anthropics/<repo>/...` over WebFetch on github.com URLs.
+
+  - id: gh-claude-code
+    url: https://github.com/anthropics/claude-code
+    api_url: https://api.github.com/repos/anthropics/claude-code
+    covers: Claude Code product repo. README + CHANGELOG.md (~4500 lines, 380KB) + releases. Primary signal for new flags/commands.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-code
+    confidence: HIGH
+    category: repo
+    sub_targets:
+      - https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md
+      - https://api.github.com/repos/anthropics/claude-code/releases?per_page=10
+
+  - id: gh-claude-cookbooks
+    url: https://github.com/anthropics/claude-cookbooks
+    api_url: https://api.github.com/repos/anthropics/claude-cookbooks
+    covers: Official cookbooks (Jupyter notebooks). Renamed from `anthropic-cookbook` (old name 404s). Tool use, sub-agents, prompt caching, evals.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-cookbooks
+    confidence: HIGH
+    category: repo
+
+  - id: gh-courses
+    url: https://github.com/anthropics/courses
+    api_url: https://api.github.com/repos/anthropics/courses
+    covers: 5 official courses (API fundamentals, prompt engineering, real-world prompting, evals, tool use). Slow-moving but canonical.
+    cadence: monthly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/courses
+    confidence: HIGH
+    category: repo
+
+  - id: gh-claude-code-action
+    url: https://github.com/anthropics/claude-code-action
+    api_url: https://api.github.com/repos/anthropics/claude-code-action
+    covers: GitHub Action wrapper for Claude Code in CI - mode detection, auth providers, structured outputs. Tracks CI patterns.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-code-action
+    confidence: HIGH
+    category: repo
+
+  - id: gh-claude-code-base-action
+    url: https://github.com/anthropics/claude-code-base-action
+    api_url: https://api.github.com/repos/anthropics/claude-code-base-action
+    covers: Thin base-action wrapper. MIRROR of base-action/ inside claude-code-action - do not file issues here. Lower priority than parent repo.
+    cadence: monthly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-code-base-action
+    confidence: HIGH
+    category: repo
+
+  - id: gh-agent-sdk-python
+    url: https://github.com/anthropics/claude-agent-sdk-python
+    api_url: https://api.github.com/repos/anthropics/claude-agent-sdk-python
+    covers: Official Python SDK. claude-agent-sdk on PyPI. Hooks, custom tools, in-process MCP. Releases fast (v0.2.105 by 2026-06-19).
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-agent-sdk-python
+    confidence: HIGH
+    category: repo
+    sub_targets:
+      - https://raw.githubusercontent.com/anthropics/claude-agent-sdk-python/main/CHANGELOG.md
+
+  - id: gh-agent-sdk-typescript
+    url: https://github.com/anthropics/claude-agent-sdk-typescript
+    api_url: https://api.github.com/repos/anthropics/claude-agent-sdk-typescript
+    covers: Official TypeScript SDK. @anthropic-ai/claude-agent-sdk on npm. Bundles Claude Code binary. 145+ releases.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-agent-sdk-typescript
+    confidence: HIGH
+    category: repo
+    sub_targets:
+      - https://raw.githubusercontent.com/anthropics/claude-agent-sdk-typescript/main/CHANGELOG.md
+
+  - id: gh-plugins-official
+    url: https://github.com/anthropics/claude-plugins-official
+    api_url: https://api.github.com/repos/anthropics/claude-plugins-official
+    covers: Anthropic-curated plugin marketplace. Auto-registered on first interactive launch. Reference for plugin patterns.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-plugins-official
+    confidence: MED
+    category: repo
+
+  - id: gh-plugins-community
+    url: https://github.com/anthropics/claude-plugins-community
+    api_url: https://api.github.com/repos/anthropics/claude-plugins-community
+    covers: Community marketplace (reviewed submissions). marketplace.json gets bumped nightly.
+    cadence: weekly
+    method: git_api
+    stability: stable
+    cache_key: gh/anthropics/claude-plugins-community
+    confidence: MED
+    category: repo
+
+# ---------- Fetch policy ----------
+fetch_policy:
+  user_agent: "harness-gap-analyzer/1.0 (+https://github.com/shurijoc/harness-gap-analyzer)"
+  follow_redirects: true
+  github:
+    prefer: gh_api    # use `gh api repos/...` for github.com sources
+    auth: gh_cli      # rely on logged-in gh; falls back to anonymous w/ rate limit
+  conditional_get: true   # send If-Modified-Since / ETag, skip body on 304
+  diff_strategy: content_hash   # cache_key + sha256(body); only re-summarize on hash change
+  rate_limit_backoff: exponential  # anthropic.com WAF blocks bursts; space requests >=1s

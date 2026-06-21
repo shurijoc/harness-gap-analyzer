@@ -1,0 +1,964 @@
+meta:
+  rubric_version: "2026.06.20"
+  generated_from: "/tmp/research/taxonomy.md"
+  source_doc_base: "https://code.claude.com/docs/en"
+  taxonomy_categories:
+    - skills
+    - sub-agents
+    - hooks
+    - permissions
+    - slash-commands
+    - mcp
+    - memory
+    - context-management
+    - modes
+    - output-discipline
+    - verification
+    - subagent-prompt-minimization
+    - cost-discipline
+    - workflows
+    - marketplace
+    - ci-integration
+  detect_types:
+    - file_exists           # target file path resolves
+    - dir_exists            # target dir path resolves
+    - dir_file_count        # count of files in dir matches expected (e.g. ">0", ">=1")
+    - yaml_frontmatter_key  # target = "path::key.path"; expected = present|<value>|regex
+    - json_key_present      # target = "path::dotted.key"; expected omitted = key must exist
+    - json_key_value        # target = "path::dotted.key"; expected = literal value or regex
+    - json_key_absent       # target = "path::dotted.key"; key must NOT exist (gotcha use)
+    - line_count_under      # target = file; expected = integer max lines
+    - line_count_over       # target = file; expected = integer min lines (anti-pattern)
+    - regex_match           # target = file; expected = regex that must appear
+    - regex_absent          # target = file; expected = regex that must NOT appear
+
+dimensions:
+
+  # ========== 1. Skills ==========
+  - id: "1.1"
+    category: skills
+    title: "Skill description present"
+    definition: "SKILL.md frontmatter has description field; combined description+when_to_use truncated at 1,536 chars"
+    artifact: ".claude/skills/<name>/SKILL.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/skills/*/SKILL.md::description"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: required
+    why_matters: "Without a description the skill never gets discovered by the model router."
+
+  - id: "1.2"
+    category: skills
+    title: "Skill body under 500 lines"
+    definition: "Keep SKILL.md under 500 lines; supporting files (reference.md, examples.md) loaded lazily"
+    artifact: ".claude/skills/<name>/SKILL.md"
+    detect:
+      type: line_count_under
+      target: ".claude/skills/*/SKILL.md"
+      expected: 500
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: recommended
+    why_matters: "SKILL.md over 500 lines violates doc guidance and bloats every session that triggers it."
+
+  - id: "1.3"
+    category: skills
+    title: "Invocation control on side-effect skills"
+    definition: "disable-model-invocation: true for skills that deploy/commit/send"
+    artifact: ".claude/skills/<name>/SKILL.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/skills/*/SKILL.md::disable-model-invocation"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "Lets you author destructive-action skills the model cannot auto-trigger."
+
+  - id: "1.4"
+    category: skills
+    title: "Path-scoped activation"
+    definition: "paths: glob limits when skill auto-loads"
+    artifact: ".claude/skills/<name>/SKILL.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/skills/*/SKILL.md::paths"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "Monorepo skills that should only fire on certain subdirs need paths: to avoid noise."
+
+  - id: "1.5"
+    category: skills
+    title: "Tool pre-approval via allowed-tools"
+    definition: "allowed-tools: grants permission while skill is active"
+    artifact: ".claude/skills/<name>/SKILL.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/skills/*/SKILL.md::allowed-tools"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "Skill-scoped allowlist beats global permission rules for narrow auto-approval."
+
+  - id: "1.10"
+    category: skills
+    title: "Legacy commands directory presence"
+    definition: ".claude/commands/*.md still loads; skill of same name takes precedence"
+    artifact: ".claude/commands/"
+    detect:
+      type: dir_exists
+      target: ".claude/commands"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "If both exist with the same name, the skill silently wins — verify intent."
+
+  # ========== 2. Sub-agents ==========
+  - id: "2.1"
+    category: sub-agents
+    title: "Subagent frontmatter has required keys"
+    definition: "Required: name, description"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::description"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: required
+    why_matters: "Missing description means the router cannot pick the agent."
+
+  - id: "2.2"
+    category: sub-agents
+    title: "Model field set on subagents"
+    definition: "Explore=haiku; research/coord=sonnet; planning/hard-debug=opus"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::model"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: recommended
+    why_matters: "Without model: every subagent runs on session default — usually overspending."
+
+  - id: "2.3"
+    category: sub-agents
+    title: "Tool allowlist or denylist set"
+    definition: "tools: allowlist OR disallowedTools: denylist"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::tools"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: recommended
+    why_matters: "Unscoped subagents inherit everything — surprise behaviour and tool drift."
+
+  - id: "2.6"
+    category: sub-agents
+    title: "Worktree isolation declared"
+    definition: "isolation: worktree gives temp git worktree, auto-cleaned"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::isolation"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: optional
+    why_matters: "Long-running implementation agents should not stomp on the user's working tree."
+
+  - id: "2.7"
+    category: sub-agents
+    title: "Persistent memory declared"
+    definition: "memory: user|project|local enables cross-session auto-memory"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::memory"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: optional
+    why_matters: "Stateful PM/QA agents need memory: to keep context across sessions."
+
+  - id: "2.8"
+    category: sub-agents
+    title: "Background mode declared where appropriate"
+    definition: "background: true runs as background task"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::background"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/agent-view"
+    importance: optional
+    why_matters: "Watchers/cron-ish agents should run background to survive terminal close."
+
+  - id: "2.11"
+    category: sub-agents
+    title: "Effort inheritance set"
+    definition: "effort: low|medium|high|xhigh|max overrides session effort"
+    artifact: ".claude/agents/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/agents/*.md::effort"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/sub-agents"
+    importance: optional
+    why_matters: "Per-agent effort lets the cheap fan-out workers stay at medium while planners go max."
+
+  # ========== 3. Hooks ==========
+  - id: "3.1"
+    category: hooks
+    title: "Hooks configured in settings.json or hooks.json"
+    definition: "Real events: SessionStart, PreToolUse, PostToolUse, Stop, etc."
+    artifact: "settings.json::hooks OR hooks/hooks.json"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::hooks"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/hooks"
+    importance: recommended
+    why_matters: "Hooks are the only way to enforce deterministic behaviour the model cannot skip."
+
+  - id: "3.5"
+    category: hooks
+    title: "Hook (not CLAUDE.md) used for fixed-event enforcement"
+    definition: "'Must run at fixed event regardless of model' → hook, not CLAUDE.md"
+    artifact: ".claude/hooks/ or settings.json::hooks"
+    detect:
+      type: dir_exists
+      target: ".claude/hooks"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: optional
+    why_matters: "Rules written in CLAUDE.md cannot block a tool call; hooks can."
+
+  # ========== 4. Permissions ==========
+  - id: "4.1"
+    category: permissions
+    title: "Three-bucket permissions present"
+    definition: "permissions.allow / permissions.deny / permissions.ask — deny wins"
+    artifact: "settings.json::permissions"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::permissions"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "Without explicit permissions you live on the default prompt-everything path."
+
+  - id: "4.1b"
+    category: permissions
+    title: "permissions.deny present (deny-wins)"
+    definition: "Explicit deny rules trump any allow"
+    artifact: "settings.json::permissions.deny"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::permissions.deny"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "Deny rules are the only way to harden against unsafe tool calls."
+
+  - id: "4.4"
+    category: permissions
+    title: "Project allowlist captured from transcript audit"
+    definition: "Audit repeated read-only Bash/MCP calls and add to project .claude/settings.json"
+    artifact: ".claude/settings.json::permissions.allow"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::permissions.allow"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "Fewer-permission-prompts pattern — reduces interruption rate substantially."
+
+  - id: "4.5"
+    category: permissions
+    title: "User-scope settings exist"
+    definition: "~/.claude/settings.json holds personal allows"
+    artifact: "~/.claude/settings.json"
+    detect:
+      type: file_exists
+      target: "~/.claude/settings.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "Personal preferences belong in user-scope so projects stay portable."
+
+  - id: "4.5b"
+    category: permissions
+    title: "Project-scope settings exist"
+    definition: "Project .claude/settings.json holds team allows"
+    artifact: ".claude/settings.json"
+    detect:
+      type: file_exists
+      target: ".claude/settings.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: required
+    why_matters: "Shared team rules require project-scope settings to be checked in."
+
+  - id: "4.5c"
+    category: permissions
+    title: "Local-scope settings gitignored"
+    definition: ".claude/settings.local.json must be gitignored"
+    artifact: ".gitignore"
+    detect:
+      type: regex_match
+      target: ".gitignore"
+      expected: "settings\\.local\\.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: required
+    why_matters: "Local settings can hold machine-specific paths; leaking them breaks teammates."
+
+  - id: "4.8"
+    category: permissions
+    title: "defaultMode set explicitly"
+    definition: "permissions.defaultMode: default|acceptEdits|plan|auto|dontAsk|bypassPermissions"
+    artifact: "settings.json::permissions.defaultMode"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::permissions.defaultMode"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/permission-modes"
+    importance: optional
+    why_matters: "Explicit mode tells the team what posture this repo expects."
+
+  - id: "4.9"
+    category: permissions
+    title: "Managed enforcement keys (enterprise)"
+    definition: "allowManagedPermissionRulesOnly / disableAutoMode / disableBypassPermissionsMode at managed layer"
+    artifact: "managed settings.json"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::allowManagedPermissionRulesOnly"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Required when locking down a fleet under central policy."
+
+  # ========== 5. Slash commands ==========
+  - id: "5.2"
+    category: slash-commands
+    title: "argument-hint on commands/skills"
+    definition: "argument-hint: provides autocomplete hint, e.g. [issue-number]"
+    artifact: ".claude/skills/<name>/SKILL.md or .claude/commands/<name>.md"
+    detect:
+      type: yaml_frontmatter_key
+      target: ".claude/skills/*/SKILL.md::argument-hint"
+      expected: present
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "Improves discoverability for skills that take arguments."
+
+  # ========== 6. MCP ==========
+  - id: "6.1"
+    category: mcp
+    title: "MCP servers configured at appropriate scope"
+    definition: "Project .mcp.json (team) vs user settings vs local"
+    artifact: ".mcp.json"
+    detect:
+      type: file_exists
+      target: ".mcp.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/mcp"
+    importance: optional
+    why_matters: "Team MCP servers belong in project .mcp.json so onboarding works out of the box."
+
+  - id: "6.2"
+    category: mcp
+    title: "enableAllProjectMcpServers is opt-in, not blanket"
+    definition: "Auto-approves every server in .mcp.json — should be opt-in"
+    artifact: "settings.json::enableAllProjectMcpServers"
+    detect:
+      type: json_key_value
+      target: ".claude/settings.json::enableAllProjectMcpServers"
+      expected: false
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "true here means any added server is auto-trusted — security footgun."
+
+  - id: "6.3"
+    category: mcp
+    title: "Per-server enable/disable lists"
+    definition: "enabledMcpjsonServers / disabledMcpjsonServers arrays"
+    artifact: "settings.json::enabledMcpjsonServers"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::enabledMcpjsonServers"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Lets you commit a server list but flip individual ones off per-machine."
+
+  - id: "6.7"
+    category: mcp
+    title: "Managed allowlist for MCP"
+    definition: "allowedMcpServers + allowManagedMcpServersOnly for enterprise lockdown"
+    artifact: "managed settings.json"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::allowedMcpServers"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Required to lock down third-party MCP servers in regulated orgs."
+
+  # ========== 7. Memory ==========
+  - id: "7.1"
+    category: memory
+    title: "Project CLAUDE.md present"
+    definition: "Project ./CLAUDE.md or .claude/CLAUDE.md"
+    artifact: "CLAUDE.md"
+    detect:
+      type: file_exists
+      target: "CLAUDE.md"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: required
+    why_matters: "No CLAUDE.md means every session starts with zero project context."
+
+  - id: "7.1b"
+    category: memory
+    title: "User CLAUDE.md present"
+    definition: "~/.claude/CLAUDE.md holds personal cross-project rules"
+    artifact: "~/.claude/CLAUDE.md"
+    detect:
+      type: file_exists
+      target: "~/.claude/CLAUDE.md"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: recommended
+    why_matters: "Personal style rules belong here so they apply everywhere."
+
+  - id: "7.2"
+    category: memory
+    title: "CLAUDE.md under 200 lines"
+    definition: "Target <200 lines per CLAUDE.md; longer reduces adherence"
+    artifact: "CLAUDE.md"
+    detect:
+      type: line_count_under
+      target: "CLAUDE.md"
+      expected: 200
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: recommended
+    why_matters: "Doc-cited adherence cliff — bloated CLAUDE.md silently ignored."
+
+  - id: "7.4"
+    category: memory
+    title: "Path-scoped rules in .claude/rules/"
+    definition: "Topic-per-file, loads only when matching files touched"
+    artifact: ".claude/rules/"
+    detect:
+      type: dir_exists
+      target: ".claude/rules"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: recommended
+    why_matters: "Lets you split CLAUDE.md by topic without bloating the always-on context."
+
+  - id: "7.5"
+    category: memory
+    title: "Auto-memory enabled (or explicitly disabled)"
+    definition: "autoMemoryEnabled (default true); first 200 lines / 25KB loaded each session"
+    artifact: "settings.json::autoMemoryEnabled"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::autoMemoryEnabled"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: optional
+    why_matters: "Setting it explicitly documents intent to teammates."
+
+  - id: "7.7"
+    category: memory
+    title: "claudeMdExcludes for monorepos"
+    definition: "Glob exclude ancestor CLAUDE.md in monorepos"
+    artifact: "settings.json::claudeMdExcludes"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::claudeMdExcludes"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/memory"
+    importance: optional
+    why_matters: "Without this, every nested CLAUDE.md from monorepo siblings gets loaded."
+
+  # ========== 8. Context management ==========
+  - id: "8.1"
+    category: context-management
+    title: "autoCompactEnabled set"
+    definition: "Auto-compact when nearing limit (default true)"
+    artifact: "settings.json::autoCompactEnabled"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::autoCompactEnabled"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Explicit setting documents the team's compact posture."
+
+  # ========== 9. Modes / worktrees ==========
+  - id: "9.4"
+    category: modes
+    title: "Worktree baseRef configured"
+    definition: "worktree.baseRef: 'fresh'|'head'"
+    artifact: "settings.json::worktree.baseRef"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::worktree.baseRef"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/worktrees"
+    importance: optional
+    why_matters: "Pin baseRef so parallel worktree sessions don't pick up uncommitted state surprises."
+
+  - id: "9.4b"
+    category: modes
+    title: ".worktreeinclude exists when needed"
+    definition: "Copies gitignored files into worktrees"
+    artifact: ".worktreeinclude"
+    detect:
+      type: file_exists
+      target: ".worktreeinclude"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/worktrees"
+    importance: optional
+    why_matters: ".env / build artifacts disappear in worktrees without this."
+
+  # ========== 10. Output discipline ==========
+  - id: "10.1"
+    category: output-discipline
+    title: "outputStyle set"
+    definition: "outputStyle: Explanatory|Proactive|custom — alters system prompt"
+    artifact: "settings.json::outputStyle"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::outputStyle"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Documents the desired response posture for the repo."
+
+  - id: "10.6"
+    category: output-discipline
+    title: "language preference set"
+    definition: "Per-user response-language preference"
+    artifact: "settings.json::language"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::language"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Locks the response language so the model doesn't drift to English."
+
+  # ========== 11. Verification ==========
+  - id: "11.3"
+    category: verification
+    title: "Project-specific run skill recorded"
+    definition: "/run-skill-generator records .claude/skills/run-<name>/"
+    artifact: ".claude/skills/run-*/SKILL.md"
+    detect:
+      type: dir_file_count
+      target: ".claude/skills"
+      expected: ">0"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/skills"
+    importance: optional
+    why_matters: "Project-recorded run recipes let /run actually launch the app without re-discovery."
+
+  # ========== 13. Cost discipline ==========
+  - id: "13.4"
+    category: cost-discipline
+    title: "fallbackModel chain configured"
+    definition: "Array of up to 3 models for overload fallback"
+    artifact: "settings.json::fallbackModel"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::fallbackModel"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: recommended
+    why_matters: "Without fallback, overload errors brick the session instead of degrading."
+
+  # ========== 14. Workflows ==========
+  - id: "14.1"
+    category: workflows
+    title: "Workflows toggle documented"
+    definition: "disableWorkflows toggle exists"
+    artifact: "settings.json::disableWorkflows"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::disableWorkflows"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Explicit toggle documents whether the team relies on built-in workflow infra."
+
+  # ========== 15. Marketplace / plugin distribution ==========
+  - id: "15.1"
+    category: marketplace
+    title: "Plugin manifest present"
+    definition: ".claude-plugin/plugin.json with name, description, version, author"
+    artifact: ".claude-plugin/plugin.json"
+    detect:
+      type: file_exists
+      target: ".claude-plugin/plugin.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Only required when authoring a plugin. Without plugin.json the plugin cannot be loaded by the marketplace."
+
+  - id: "15.1b"
+    category: marketplace
+    title: "Plugin manifest has name"
+    definition: "name field required in plugin.json"
+    artifact: ".claude-plugin/plugin.json::name"
+    detect:
+      type: json_key_present
+      target: ".claude-plugin/plugin.json::name"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Only relevant for plugin authors. Manifest without name fails plugin validation."
+
+  - id: "15.1c"
+    category: marketplace
+    title: "Plugin manifest has version"
+    definition: "Explicit semver or git SHA fallback"
+    artifact: ".claude-plugin/plugin.json::version"
+    detect:
+      type: json_key_present
+      target: ".claude-plugin/plugin.json::version"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: recommended
+    why_matters: "Without explicit version, every commit becomes a new version — surprising for consumers."
+
+  - id: "15.1d"
+    category: marketplace
+    title: "Plugin manifest has description"
+    definition: "description field required"
+    artifact: ".claude-plugin/plugin.json::description"
+    detect:
+      type: json_key_present
+      target: ".claude-plugin/plugin.json::description"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Only relevant for plugin authors. Discovery in the marketplace requires a description."
+
+  - id: "15.1e"
+    category: marketplace
+    title: "Plugin manifest has author"
+    definition: "author field"
+    artifact: ".claude-plugin/plugin.json::author"
+    detect:
+      type: json_key_present
+      target: ".claude-plugin/plugin.json::author"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: recommended
+    why_matters: "Attribution matters for trust and bug reports."
+
+  - id: "15.3"
+    category: marketplace
+    title: "Plugin layout — skills at root"
+    definition: "skills/ at plugin root, NOT inside .claude-plugin/"
+    artifact: "skills/"
+    detect:
+      type: dir_exists
+      target: "skills"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: recommended
+    why_matters: "Canonical layout mistake — skills inside .claude-plugin/ are silently ignored."
+
+  - id: "15.3b"
+    category: marketplace
+    title: "Plugin layout — agents at root"
+    definition: "agents/ at plugin root"
+    artifact: "agents/"
+    detect:
+      type: dir_exists
+      target: "agents"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Same misplacement footgun as skills/."
+
+  - id: "15.3c"
+    category: marketplace
+    title: "Plugin layout — commands at root"
+    definition: "commands/ at plugin root"
+    artifact: "commands/"
+    detect:
+      type: dir_exists
+      target: "commands"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Same misplacement footgun as skills/."
+
+  - id: "15.3d"
+    category: marketplace
+    title: "Plugin layout — hooks at root"
+    definition: "hooks/ at plugin root"
+    artifact: "hooks/"
+    detect:
+      type: dir_exists
+      target: "hooks"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "hooks/hooks.json must be discoverable at root for the loader to find it."
+
+  - id: "15.10"
+    category: marketplace
+    title: "Background monitors directory"
+    definition: "monitors/monitors.json watches logs/files"
+    artifact: "monitors/monitors.json"
+    detect:
+      type: file_exists
+      target: "monitors/monitors.json"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/plugins"
+    importance: optional
+    why_matters: "Plugins that watch for events need this file to register monitors."
+
+  # ========== 16. CI integration ==========
+  - id: "16.1"
+    category: ci-integration
+    title: "GitHub Actions workflow for Claude Code present"
+    definition: "anthropics/claude-code-action@v1"
+    artifact: ".github/workflows/*.yml"
+    detect:
+      type: dir_file_count
+      target: ".github/workflows"
+      expected: ">0"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/github-actions"
+    importance: optional
+    why_matters: "CI integration is how @claude mentions in PR comments get answered."
+
+  - id: "16.1b"
+    category: ci-integration
+    title: "Workflow pins claude-code-action@v1"
+    definition: "v1 GA action auto-detects interactive vs automation mode"
+    artifact: ".github/workflows/*.yml"
+    detect:
+      type: regex_match
+      target: ".github/workflows"
+      expected: "anthropics/claude-code-action@v1"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/github-actions"
+    importance: recommended
+    why_matters: "Older beta action uses different inputs — pinning v1 makes migration explicit."
+
+  - id: "16.6"
+    category: ci-integration
+    title: "ANTHROPIC_API_KEY via GH secret, not inline"
+    definition: "Never inline API keys"
+    artifact: ".github/workflows/*.yml"
+    detect:
+      type: regex_absent
+      target: ".github/workflows"
+      expected: "ANTHROPIC_API_KEY:\\s*sk-"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/github-actions"
+    importance: required
+    why_matters: "Inline API keys leak in git history — always use secrets."
+
+  - id: "16.7"
+    category: ci-integration
+    title: "Workflow permissions block scoped"
+    definition: "permissions: block grants only contents, pull-requests, issues, id-token"
+    artifact: ".github/workflows/*.yml"
+    detect:
+      type: regex_match
+      target: ".github/workflows"
+      expected: "permissions:"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/github-actions"
+    importance: recommended
+    why_matters: "Default GITHUB_TOKEN is over-scoped — least-privilege the workflow."
+
+  - id: "16.9"
+    category: ci-integration
+    title: "Cost guardrail max-turns / timeout"
+    definition: "--max-turns, workflow-level timeout, GH concurrency"
+    artifact: ".github/workflows/*.yml"
+    detect:
+      type: regex_match
+      target: ".github/workflows"
+      expected: "(max-turns|timeout-minutes|concurrency)"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/github-actions"
+    importance: recommended
+    why_matters: "Runaway workflows burn credits — bound them explicitly."
+
+  # ========== X. Cross-cutting ==========
+  - id: "X.5"
+    category: output-discipline
+    title: "attribution key used (not deprecated includeCoAuthoredBy)"
+    definition: "attribution is current; includeCoAuthoredBy is deprecated"
+    artifact: "settings.json::attribution"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::attribution"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Lets you customize commit/PR co-author attribution via current key."
+
+  - id: "X.6"
+    category: context-management
+    title: "cleanupPeriodDays set"
+    definition: "Session retention period"
+    artifact: "settings.json::cleanupPeriodDays"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::cleanupPeriodDays"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Documents how long /rewind history is retained."
+
+  - id: "X.6b"
+    category: context-management
+    title: "fileCheckpointingEnabled set"
+    definition: "/rewind snapshot toggle"
+    artifact: "settings.json::fileCheckpointingEnabled"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::fileCheckpointingEnabled"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Without checkpointing /rewind cannot restore file state."
+
+  - id: "X.7"
+    category: output-discipline
+    title: "respectGitignore set"
+    definition: "@-picker hygiene"
+    artifact: "settings.json::respectGitignore"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::respectGitignore"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Stops @-picker offering build artifacts and secrets."
+
+  - id: "X.7b"
+    category: output-discipline
+    title: "fileSuggestion configured"
+    definition: "@-picker behaviour"
+    artifact: "settings.json::fileSuggestion"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::fileSuggestion"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Tune @-picker scope to match repo size and structure."
+
+  - id: "X.8"
+    category: output-discipline
+    title: "preferredNotifChannel matches terminal"
+    definition: "desktop|iterm2|kitty|ghostty|bell"
+    artifact: "settings.json::preferredNotifChannel"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::preferredNotifChannel"
+    confidence: HIGH
+    source_url: "https://code.claude.com/docs/en/settings"
+    importance: optional
+    why_matters: "Wrong channel = silent notifications and missed turns."
+
+
+gotchas:
+  - id: G1
+    title: "Deprecated includeCoAuthoredBy in use"
+    detect:
+      type: json_key_present
+      target: ".claude/settings.json::includeCoAuthoredBy"
+    severity: warn
+    fix_hint: "Replace includeCoAuthoredBy with the current attribution key (settings.json::attribution)."
+
+  - id: G2
+    title: "Plugin subagent declares hooks/mcpServers/permissionMode (silently ignored)"
+    detect:
+      type: yaml_frontmatter_key
+      target: "plugins/*/agents/*.md::hooks"
+      expected: present
+    severity: warn
+    fix_hint: "Plugin subagents ignore these fields. Copy the agent file to local .claude/agents/ if you need hooks/mcpServers/permissionMode."
+
+  - id: G3
+    title: "defaultMode: auto in project or local settings (silently ignored)"
+    detect:
+      type: json_key_value
+      target: ".claude/settings.json::permissions.defaultMode"
+      expected: "auto"
+    severity: error
+    fix_hint: "Move defaultMode: auto to ~/.claude/settings.json — only user-scope settings honour it."
+
+  - id: G4
+    title: "Plugin assets nested inside .claude-plugin/ instead of plugin root"
+    detect:
+      type: dir_exists
+      target: ".claude-plugin/skills"
+    severity: error
+    fix_hint: "Move skills/ agents/ commands/ hooks/ to plugin root. Only plugin.json belongs under .claude-plugin/."
+
+  - id: G5
+    title: "CLAUDE.md over 200 lines (adherence cliff)"
+    detect:
+      type: line_count_over
+      target: "CLAUDE.md"
+      expected: 200
+    severity: warn
+    fix_hint: "Split topical sections into .claude/rules/*.md with paths: globs so they only load when relevant."
+
+  - id: G6
+    title: "SKILL.md over 500 lines (violates doc guidance)"
+    detect:
+      type: line_count_over
+      target: ".claude/skills/*/SKILL.md"
+      expected: 500
+    severity: warn
+    fix_hint: "Move detail to sibling reference.md / examples.md files that load lazily."
+
+  - id: G7
+    title: "Skill description likely over 1,536 chars (truncated in listing)"
+    detect:
+      type: line_count_over
+      target: ".claude/skills/*/SKILL.md"
+      expected: 25
+    severity: warn
+    fix_hint: "Keep combined description + when_to_use under 1,536 chars; lead with the primary trigger phrase."
+
+  - id: G8
+    title: "Bash(*) / Agent broad allows used in auto-mode workflows"
+    detect:
+      type: regex_match
+      target: ".claude/settings.json"
+      expected: "Bash\\(\\*\\)|Agent\\(\\*\\)"
+    severity: warn
+    fix_hint: "auto mode drops these broad rules on entry. Replace with narrow Bash(npm run *) / specific Agent(name) rules."

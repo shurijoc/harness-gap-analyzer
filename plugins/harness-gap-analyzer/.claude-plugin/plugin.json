@@ -1,0 +1,14 @@
+{
+  "name": "harness-gap-analyzer",
+  "displayName": "Harness Gap Analyzer",
+  "version": "0.1.0",
+  "description": "Continuously analyze your Claude Code harness against best practices from Anthropic, OpenAI, Cursor, Cline, and Devin docs.",
+  "author": {
+    "name": "konuma",
+    "url": "https://github.com/shurijoc"
+  },
+  "homepage": "https://github.com/shurijoc/harness-gap-analyzer",
+  "repository": "https://github.com/shurijoc/harness-gap-analyzer",
+  "license": "MIT",
+  "keywords": ["harness", "best-practices", "gap-analysis", "audit", "skill", "configuration"]
+}

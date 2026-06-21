@@ -1,0 +1,27 @@
+{
+  "name": "harness-gap-analyzer",
+  "owner": {
+    "name": "konuma",
+    "url": "https://github.com/shurijoc"
+  },
+  "description": "Continuous harness gap analyzer for Claude Code, comparing against Anthropic + community best practices.",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "harness-gap-analyzer",
+      "source": "./plugins/harness-gap-analyzer",
+      "description": "Audit your Claude Code harness against canonical best practices.",
+      "version": "0.1.0",
+      "author": { "name": "konuma" },
+      "homepage": "https://github.com/shurijoc/harness-gap-analyzer",
+      "repository": "https://github.com/shurijoc/harness-gap-analyzer",
+      "license": "MIT",
+      "keywords": ["harness", "best-practices", "gap-analysis", "audit"],
+      "category": "developer-tools",
+      "tags": ["audit", "config", "best-practices"],
+      "strict": true
+    }
+  ]
+}

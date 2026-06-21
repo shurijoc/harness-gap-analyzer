@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__HG_TITLE__</title>
+<style>
+  /* harness-gap report template — MIT-licensed. Self-contained: no external CSS/JS/font/image. */
+  /* ============================================================
+     共通スタイル雛形 (self-contained / 依存なし)
+     使い方: このファイルをコピーし <body> 内の中身を差し替える。
+     配色は :root の CSS 変数だけ触れば全体に効く。
+     ============================================================ */
+  :root {
+    --bg:        #fbfbfa;
+    --surface:   #ffffff;
+    --surface-2: #f4f4f2;
+    --border:    #e4e4e0;
+    --text:      #1f2328;
+    --text-mute: #636c76;
+    --accent:    #2f6fed;
+    --accent-2:  #7c5cff;
+    --accent-bg: #eaf1fe;
+    --grad: linear-gradient(135deg, var(--accent), var(--accent-2));
+    --shadow-lift: 0 6px 22px -8px rgba(47,111,237,.35);
+    --dot: rgba(20,30,60,.045);   /* ギーク: 極薄ドットグリッド */
+    --term: #1f883d;              /* ターミナル風アクセント */
+    /* callout 系 */
+    --fact:      #1f883d;   --fact-bg:   #eaf6ec;
+    --hypo:      #9a6700;   --hypo-bg:   #fdf3e0;
+    --unknown:   #6639ba;   --unknown-bg:#f1ebfb;
+    --warn:      #cf222e;   --warn-bg:   #fdeceb;
+    --note:      #2f6fed;   --note-bg:   #eaf1fe;
+    --radius: 10px;
+    --maxw: 860px;
+    --nav-w: 230px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #15171a;
+      --surface:   #1c1f23;
+      --surface-2: #23272c;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --text-mute: #99a2ab;
+      --accent:    #4f8bff;
+      --accent-2:  #a371f7;
+      --accent-bg: #16243f;
+      --shadow-lift: 0 6px 26px -8px rgba(79,139,255,.5);
+      --dot: rgba(140,170,255,.05);
+      --term: #4ac26b;
+      --fact:      #4ac26b;   --fact-bg:   #122017;
+      --hypo:      #e3b341;   --hypo-bg:   #241c0c;
+      --unknown:   #a371f7;   --unknown-bg:#1d1430;
+      --warn:      #ff7b72;   --warn-bg:   #2a1413;
+      --note:      #4f8bff;   --note-bg:   #16243f;
+    }
+  }
+  /* 明示トグル時 (data-theme) は OS 設定より優先 */
+  html[data-theme="light"] { color-scheme: light; }
+  html[data-theme="dark"]  { color-scheme: dark; }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--text);
+    background:
+      radial-gradient(var(--dot) 1px, transparent 1.2px) 0 0 / 22px 22px,
+      var(--bg);
+    font-family: var(--sans); line-height: 1.75; font-size: 15.5px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* 上端に薄くグラデの帯（紙の天面アクセント） */
+  body::before {
+    content: ""; position: fixed; inset: 0 0 auto 0; height: 3px;
+    background: var(--grad); opacity: .5; z-index: 60; pointer-events: none;
+  }
+
+  /* ---- スクロール連動プログレスバー ---- */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0;
+    background: var(--grad); z-index: 61; transition: width .1s linear;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ---- レイアウト: 左 TOC + 本文 ---- */
+  .wrap { display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr); gap: 0;
+          max-width: calc(var(--maxw) + var(--nav-w) + 64px); margin: 0 auto; }
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 18px; border-right: 1px solid var(--border); font-size: 13.5px;
+  }
+  nav.toc .toc-title { font-weight: 700; font-size: 12px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  nav.toc a {
+    display: block; padding: 4px 10px; margin: 1px 0; border-radius: 6px;
+    color: var(--text-mute); text-decoration: none; border-left: 2px solid transparent;
+  }
+  nav.toc a:hover { background: var(--surface-2); color: var(--text); }
+  nav.toc a { transition: padding-left .15s ease, color .15s ease; }
+  nav.toc a.active { color: var(--accent); border-left-color: var(--accent);
+    background: var(--accent-bg); font-weight: 600; padding-left: 14px; }
+  nav.toc a.lvl-3 { padding-left: 22px; font-size: 12.5px; }
+
+  main { padding: 28px 32px 120px; min-width: 0; }
+  .container { max-width: var(--maxw); counter-reset: sec; }
+
+  /* ---- エディトリアル採番 (h2.numbered → 01 02 ...) ---- */
+  h2.numbered { counter-increment: sec; padding-left: 0; display: flex;
+    align-items: baseline; gap: 12px; }
+  h2.numbered::before {
+    content: counter(sec, decimal-leading-zero); position: static; width: auto;
+    top: auto; bottom: auto; background: var(--grad); -webkit-background-clip: text;
+    background-clip: text; color: transparent;
+    font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: .02em;
+    border-radius: 0;
+  }
+  h2.numbered::after {
+    content: ""; flex: 0 0 auto; align-self: center; width: 26px; height: 2px;
+    border-radius: 2px; background: var(--grad); opacity: .5;
+  }
+
+  /* ---- ヘッダ ---- */
+  header.doc { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); position: relative; }
+  header.doc .syslabel {
+    font-family: var(--mono); font-size: 12px; color: var(--term); letter-spacing: .04em;
+    margin: 0 0 10px; display: flex; align-items: center; gap: 7px;
+  }
+  header.doc .syslabel::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--term);
+    box-shadow: 0 0 0 0 var(--term); animation: pulse 2.4s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--term) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 6px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  header.doc h1 {
+    font-size: 28px; margin: 0 0 8px; line-height: 1.25; letter-spacing: -.015em;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text;
+    color: transparent; width: fit-content;
+  }
+  header.doc .meta { color: var(--text-mute); font-size: 12.5px; display: flex; gap: 16px;
+    flex-wrap: wrap; font-family: var(--mono); }
+  header.doc .meta span { display: inline-flex; align-items: center; gap: 5px; }
+  header.doc .meta .k { color: var(--accent); }
+
+  /* ---- 見出し（左に差し色バー） ---- */
+  h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 6px; scroll-margin-top: 16px;
+       position: relative; padding-left: 14px; }
+  h2::before {
+    content: ""; position: absolute; left: 0; top: 11px; bottom: 4px; width: 4px;
+    border-radius: 4px; background: var(--grad);
+  }
+  h3 { font-size: 16px; margin: 24px 0 8px; color: var(--text); scroll-margin-top: 16px; }
+  p { margin: 10px 0; }
+  /* リンク: hover でグラデ下線が伸びる */
+  a { color: var(--accent); text-decoration: none;
+      background: var(--grad) left bottom / 0 2px no-repeat;
+      padding-bottom: 1px; transition: background-size .2s ease; }
+  a:hover { background-size: 100% 2px; }
+  nav.toc a, header.doc a, .theme-toggle { background-image: none; }
+  ul, ol { padding-left: 22px; } li { margin: 4px 0; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
+  small, .mute { color: var(--text-mute); }
+
+  /* ---- 折りたたみセクション ---- */
+  details.section {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); margin: 16px 0; overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  details.section:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+  details.section > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 600; list-style: none;
+    display: flex; align-items: center; gap: 9px; user-select: none;
+  }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section > summary::before {
+    content: "›"; font-size: 19px; line-height: 0; color: var(--accent); font-weight: 700;
+    transition: transform .2s ease; transform-origin: center;
+  }
+  details.section[open] > summary::before { transform: rotate(90deg); }
+  details.section > summary:hover { background: var(--surface-2); }
+  details.section .body { padding: 4px 16px 16px; border-top: 1px solid var(--border); }
+
+  /* ---- callout ---- */
+  .callout {
+    border: 1px solid var(--border); border-left-width: 4px;
+    border-radius: 8px; padding: 12px 14px; margin: 14px 0;
+    background: var(--surface);
+  }
+  .callout { transition: transform .15s ease; }
+  .callout:hover { transform: translateX(2px); }
+  .callout .tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px;
+  }
+  .callout .tag::before { font-size: 13px; }
+  .callout p { margin: 4px 0; }
+  .callout.fact    { border-left-color: var(--fact);    background: var(--fact-bg); }
+  .callout.fact .tag    { color: var(--fact); }
+  .callout.fact .tag::before    { content: "✓"; }
+  .callout.hypo    { border-left-color: var(--hypo);    background: var(--hypo-bg); }
+  .callout.hypo .tag    { color: var(--hypo); }
+  .callout.hypo .tag::before    { content: "✣"; }
+  .callout.unknown { border-left-color: var(--unknown); background: var(--unknown-bg); }
+  .callout.unknown .tag { color: var(--unknown); }
+  .callout.unknown .tag::before { content: "？"; }
+  .callout.warn    { border-left-color: var(--warn);    background: var(--warn-bg); }
+  .callout.warn .tag    { color: var(--warn); }
+  .callout.warn .tag::before    { content: "▲"; }
+  .callout.note    { border-left-color: var(--note);    background: var(--note-bg); }
+  .callout.note .tag    { color: var(--note); }
+  .callout.note .tag::before    { content: "✎"; }
+
+  /* ---- バッジ ---- */
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 9px;
+    border-radius: 999px; vertical-align: middle; line-height: 1.7;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent);
+  }
+  .badge.fact    { color: var(--fact);    background: var(--fact-bg); }
+  .badge.hypo    { color: var(--hypo);    background: var(--hypo-bg); }
+  .badge.unknown { color: var(--unknown); background: var(--unknown-bg); }
+
+  /* ---- リード文（冒頭の格上げ） ---- */
+  .lead {
+    font-size: 18.5px; line-height: 1.75; color: var(--text);
+    font-weight: 400; margin: 4px 0 26px; max-width: 64ch;
+  }
+  .lead strong { font-weight: 650; }
+
+  /* ---- プルクオート（印象的な一文を見せる） ---- */
+  blockquote.pull {
+    position: relative; margin: 30px 0; padding: 6px 0 6px 26px;
+    font-size: 22px; line-height: 1.55; font-weight: 500; letter-spacing: -.01em;
+    border: 0;
+  }
+  blockquote.pull::before {
+    content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px;
+    border-radius: 4px; background: var(--grad);
+  }
+  blockquote.pull .src {
+    display: block; margin-top: 10px; font-size: 12.5px; font-weight: 400;
+    font-family: var(--mono); color: var(--text-mute); letter-spacing: 0;
+  }
+  blockquote.pull .src::before { content: "— "; }
+
+  /* ---- 数字ヒーロー（stat） ---- */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin: 20px 0;
+  }
+  .stat {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); padding: 16px 18px; position: relative; overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .stat::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--grad);
+  }
+  .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+  .stat .num {
+    font-family: var(--mono); font-size: 33px; font-weight: 700; line-height: 1.05;
+    letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .stat .num .unit { font-size: 17px; -webkit-text-fill-color: var(--text-mute); }
+  .stat .label {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--text-mute); margin-top: 7px;
+  }
+  .stat .delta { font-size: 12px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+  .stat .delta.up   { color: var(--term); }
+  .stat .delta.up::before   { content: "▲ "; }
+  .stat .delta.down { color: var(--warn); }
+  .stat .delta.down::before { content: "▼ "; }
+
+  /* ---- 表 ---- */
+  .table-scroll { overflow-x: auto; margin: 14px 0; border: 1px solid var(--border);
+    border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-2); text-align: left;
+    padding: 9px 13px; font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 8px 13px; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+
+  /* ---- コード ---- */
+  code {
+    font-family: var(--mono); font-size: .88em; background: var(--surface-2);
+    padding: 1px 6px; border-radius: 5px;
+  }
+  pre {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; }
+
+  /* ---- STATUS block ---- */
+  .status {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); padding: 16px 18px; margin: 24px 0;
+  }
+  .status h3 { margin: 0 0 10px; font-family: var(--mono); font-size: 13px;
+    letter-spacing: .06em; color: var(--text-mute); }
+  .status dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+  .status dt { color: var(--text-mute); font-weight: 600; }
+  .status dd { margin: 0; }
+  .check { list-style: none; padding-left: 0; }
+  .check li::before { content: "☐ "; color: var(--text-mute); }
+  .check li.done::before { content: "☑ "; color: var(--fact); }
+
+  /* ---- テーマトグル ---- */
+  .theme-toggle {
+    position: fixed; top: 16px; right: 18px; z-index: 50;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 999px; padding: 6px 13px; font-size: 12px; cursor: pointer;
+    font-family: var(--sans); transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .theme-toggle:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+  .theme-toggle:active { transform: translateY(0); }
+
+  /* ---- レスポンシブ: TOC を畳む ---- */
+  @media (max-width: 760px) {
+    .wrap { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: 0;
+      border-bottom: 1px solid var(--border); }
+    main { padding: 20px 18px 80px; }
+  }
+  @media print {
+    nav.toc, .theme-toggle { display: none; }
+    .wrap { display: block; }
+    details.section { border: 0; } details.section .body { border-top: 0; }
+  }
+
+  /* =========================================================================
+     PIXEL TRIAL v2 — pixel を「全幅 header バナー」1箇所に集約。
+     本文 / ナビ / parts は通常のまま = 上下でゾーンを分離してチグハグ回避。
+     ========================================================================= */
+  :root {
+    --pix-shadow: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  /* ---- 背景: 方眼ドットに赤青緑黄をまばらに散らす（y-n10 風） ----
+     ベースの単色グリッド(22px)に、別周期(132/154/176/198px)の
+     色ドットを重ねる。周期をずらすので規則的だがランダムに見える。 */
+  body {
+    background:
+      radial-gradient(circle, color-mix(in srgb, #e5484d 72%, transparent) 0 1.9px, transparent 2.3px)  44px  44px / 132px 132px,
+      radial-gradient(circle, color-mix(in srgb, #2f6fed 72%, transparent) 0 1.9px, transparent 2.3px)  88px  66px / 154px 154px,
+      radial-gradient(circle, color-mix(in srgb, #1f883d 72%, transparent) 0 1.9px, transparent 2.3px)  22px 110px / 176px 176px,
+      radial-gradient(circle, color-mix(in srgb, #e3b341 78%, transparent) 0 1.9px, transparent 2.3px) 132px  22px / 198px 198px,
+      radial-gradient(circle, var(--dot) 0 1px, transparent 1.3px) 0 0 / 22px 22px,
+      var(--bg);
+  }
+
+  /* ---- header を全幅バナー化（中身だけ中央 maxw に揃える） ---- */
+  header.doc {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 5px, color-mix(in srgb, var(--text) 3%, transparent) 5px 6px),
+      var(--surface);
+    border: 0; border-bottom: 3px solid var(--text); border-radius: 0;
+    margin: 0 0 34px; padding: 26px 24px;
+    box-shadow: 0 5px 0 0 var(--pix-shadow);
+    image-rendering: pixelated;
+  }
+  header.doc > * {
+    max-width: calc(var(--maxw) + var(--nav-w) + 64px);
+    margin-left: auto; margin-right: auto;
+  }
+  header.doc h1 {
+    font-size: 26px; line-height: 1.5; letter-spacing: .02em;
+    background: none; -webkit-text-fill-color: var(--text); color: var(--text);
+    -webkit-text-stroke: .9px var(--text);
+    text-shadow: 3px 3px 0 var(--pix-shadow); width: auto;
+  }
+  header.doc .syslabel { font-size: 13px; letter-spacing: 0;
+    -webkit-text-stroke: .4px var(--term); }
+  header.doc .syslabel::before { border-radius: 0; }     /* 脈動ドットも四角く */
+  header.doc .meta { font-size: 13px; line-height: 1.7; gap: 18px;
+    -webkit-text-stroke: .35px var(--text-mute); }
+  /* 本文エリア(parts)は一切触らない → 通常スタイルのまま */
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button class="theme-toggle" id="themeToggle" aria-label="テーマ切替">◐ テーマ</button>
+
+<!-- PIXEL バナー（全幅・サイドバーの上に独立して載る） -->
+<header class="doc">
+  <p class="syslabel">// HARNESS GAP · v__HG_VERSION__</p>
+  <h1>__HG_TITLE__</h1>
+  <div class="meta">
+    <span><span class="k">date</span> <span id="hg-meta-date">__HG_DATE__</span></span>
+    <span><span class="k">scope</span> <span id="hg-meta-scope">__HG_SCOPE__</span></span>
+    <span><span class="k">rubric</span> <span id="hg-meta-rubric">__HG_RUBRIC_VERSION__</span></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ============ 目次 (本文の h2/h3 から自動生成) ============ -->
+  <nav class="toc" aria-label="目次">
+    <div class="toc-title">目次</div>
+    <div id="toc"></div>
+  </nav>
+
+  <!-- ============ 本文 ============ -->
+  <main>
+   <div class="container">
+<!-- HARNESS_GAP_CONTENT -->
+</div>
+  </main>
+</div>
+
+<script>
+  // ---- 目次の自動生成 + scrollspy（依存なし）----
+  (function () {
+    var main = document.querySelector('main .container');
+    var heads = main.querySelectorAll('h2, h3');
+    var toc = document.getElementById('toc');
+    var links = [];
+    heads.forEach(function (h) {
+      if (!h.id) h.id = h.textContent.trim().replace(/\s+/g, '-');
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = h.tagName === 'H3' ? 'lvl-3' : 'lvl-2';
+      toc.appendChild(a);
+      links.push({ a: a, h: h });
+    });
+    // 現在地ハイライト
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (l) { l.a.classList.toggle('active', l.h === e.target); });
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    heads.forEach(function (h) { spy.observe(h); });
+  })();
+
+  // ---- スクロール連動プログレスバー ----
+  (function () {
+    var bar = document.getElementById('progress');
+    function update() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    document.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update); update();
+  })();
+
+  // ---- テーマトグル（OS設定 → 手動上書き）----
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var saved = localStorage.getItem('report-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    btn.addEventListener('click', function () {
+      var cur = document.documentElement.getAttribute('data-theme');
+      var isDark = cur ? cur === 'dark'
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('report-theme', next);
+    });
+  })();
+</script>
+</body>
+</html>
