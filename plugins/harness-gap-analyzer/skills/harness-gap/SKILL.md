@@ -2,15 +2,21 @@
 name: harness-gap
 description: |
   Analyze your Claude Code harness (rules / skills / hooks / permissions / agents / MCP)
-  against canonical best practices from Anthropic, OpenAI, Cursor, Cline, Devin docs.
+  against canonical best practices from Anthropic, OpenAI, Cursor, Cline, and Devin docs.
   Produces a self-contained HTML report listing adopted / missing / not-needed dimensions,
   triggered gotchas (deprecated settings, oversized CLAUDE.md, ...), and the diff of
   upstream doc updates since the last run.
 
-  Trigger phrases:
+  Trigger phrases (en):
   - "/harness-gap"
   - "/harness-gap audit"
   - "/harness-gap update-sources"
+  - "audit my harness"
+  - "compare against Claude Code best practices"
+  - "find harness gaps"
+
+  トリガー語 (ja):
+  - "/harness-gap"
   - "harness の gap を分析"
   - "claude code best practices と比較"
   - "ベストプラクティスから抜けがあるか見て"
@@ -20,40 +26,45 @@ allowed-tools: Bash Read Write WebFetch
 
 # harness-gap (Claude Code Harness Gap Analyzer)
 
-自分の Claude Code harness を、公式 / community の最新ベストプラクティスと突き合わせて
-「採用済み / 抜け / 不要 / 未確認」に分類する。出力は self-contained HTML 1 枚。
+Japanese version: [SKILL.ja.md](./SKILL.ja.md)
 
-ゴール = **「harness の盲点を機械的に潰す」**。memory や勘ではなく、外部 doc 由来の rubric で
-「ここがまだ無い」「これはもう deprecated」を炙り出す。
+Cross-check your Claude Code harness against the latest official / community best practices
+and classify each dimension as `adopted / missing / not-needed / unknown`. Output is a
+single self-contained HTML file.
 
-## 目的
+Goal: **mechanically eliminate harness blind spots**. Instead of relying on memory or gut,
+use an externally-sourced rubric to surface "this is still missing" and "this is now deprecated".
 
-Claude Code の harness（rules / skills / hooks / permissions / agents / MCP / settings）は
-公式 doc と community 知見の更新が速く、手で追うと必ず漏れる。
-このスキルは harness を **read-only で inventory** し、**外部 doc を fetch** して rubric と突き合わせ、
-**HTML で gap report** を出す。改修は提案までで、harness 自体は触らない。
+## Purpose
 
-## 設計
+The Claude Code harness (rules / skills / hooks / permissions / agents / MCP / settings)
+evolves quickly across official docs and community knowledge — tracking it by hand always
+leaks. This skill **inventories the harness read-only**, **fetches external docs**, cross-checks
+them against a rubric, and **emits an HTML gap report**. Remediation is proposal-only; the
+harness itself is never modified.
 
-3 段パイプライン:
+## Design
 
-1. **inventory** — ローカルの `~/.claude/` と現在 repo の `.claude/` を走査して JSON 化
-2. **fetch sources** — Anthropic 公式 + community の doc を WebFetch して cache に格納
-3. **render report** — rubric YAML と inventory と sources を突き合わせて HTML 生成
+A three-stage pipeline:
 
-各段は独立スクリプト。`analyze` は 1+3 のみ、`audit` は 1+2+3、`update-sources` は 2 のみ。
+1. **inventory** — scan local `~/.claude/` and the current repo's `.claude/`, emit JSON
+2. **fetch sources** — WebFetch Anthropic official + community docs into a cache
+3. **render report** — cross-check rubric YAML, inventory, and sources, then generate HTML
 
-## 起動形態
+Each stage is an independent script. `analyze` runs 1+3 only, `audit` runs 1+2+3,
+`update-sources` runs 2 only.
 
-| 呼び方 | やること | 所要 |
+## Invocation
+
+| Form | Action | Cost |
 |---|---|---|
-| `/harness-gap` (=analyze) | 既存の cache + inventory で report 再生成 | 速い (10s) |
-| `/harness-gap audit` | fetch も含めたフルラン | 遅い (1-3 min) |
-| `/harness-gap update-sources` | source の fetch のみ。report は出さない | 中 (1 min) |
+| `/harness-gap` (=analyze) | Regenerate report from existing cache + inventory | Fast (10s) |
+| `/harness-gap audit` | Full run including fetch | Slow (1-3 min) |
+| `/harness-gap update-sources` | Fetch sources only; no report | Medium (1 min) |
 
-引数で挙動を切り替え。デフォルトは `analyze`。
+Behavior is switched by argument. Default is `analyze`.
 
-## 手順
+## Steps
 
 ### Step 1: inventory
 
@@ -61,24 +72,24 @@ Claude Code の harness（rules / skills / hooks / permissions / agents / MCP / 
 bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/inventory.sh
 ```
 
-走査対象:
-- `~/.claude/CLAUDE.md`、`~/.claude/rules/`、`~/.claude/skills/`、`~/.claude/settings.json`
-- `$(git rev-parse --show-toplevel)/CLAUDE.md`、`<repo>/.claude/`
-- インストール済み plugin（`~/.claude/plugins/`）
-- MCP 設定（`~/.claude/mcp.json` など）
+Scan targets:
+- `~/.claude/CLAUDE.md`, `~/.claude/rules/`, `~/.claude/skills/`, `~/.claude/settings.json`
+- `$(git rev-parse --show-toplevel)/CLAUDE.md`, `<repo>/.claude/`
+- Installed plugins (`~/.claude/plugins/`)
+- MCP config (`~/.claude/mcp.json`, etc.)
 
-出力: `${CLAUDE_PLUGIN_DATA}/inventory-$(date +%Y%m%d).json`
+Output: `${CLAUDE_PLUGIN_DATA}/inventory-$(date +%Y%m%d).json`
 
-### Step 2: fetch sources (audit のみ)
+### Step 2: fetch sources (audit only)
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/fetch-sources.sh
 ```
 
-`sources/anthropic.yaml` と `sources/community.yaml` に列挙された URL を WebFetch で取り、
-ETag / Last-Modified を見て差分のみ更新。cache は `${CLAUDE_PLUGIN_DATA}/cache/` 配下。
+WebFetch URLs listed in `sources/anthropic.yaml` and `sources/community.yaml`, updating
+only the diff based on ETag / Last-Modified. Cache lives under `${CLAUDE_PLUGIN_DATA}/cache/`.
 
-`analyze` モードでは Step 2 を skip し、既存 cache を使う。
+`analyze` mode skips Step 2 and uses the existing cache.
 
 ### Step 3: render report
 
@@ -91,92 +102,92 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/render-report.py \
   --out tmp/harness-gap-$(date +%Y%m%d).html
 ```
 
-cwd に `tmp/` が無ければ `${CLAUDE_PLUGIN_DATA}/harness-gap-$(date +%Y%m%d).html` にフォールバック。
+If `tmp/` does not exist in cwd, fall back to `${CLAUDE_PLUGIN_DATA}/harness-gap-$(date +%Y%m%d).html`.
 
-### Step 4: 末尾報告と open
+### Step 4: final report and open
 
-最後に以下を出力し、HTML を `open` する:
+Emit the following and `open` the HTML:
 
 ```
 === STATUS ===
 Report: tmp/harness-gap-YYYYMMDD.html
-採用済み: N / 抜け(必須): M / 抜け(推奨): K / 不要: L / 未確認: U
-次アクション: 抜け(必須) を /cc-fb で harness 化
+Adopted: N / Missing (required): M / Missing (recommended): K / Not needed: L / Unknown: U
+Next action: harness-ify missing-required items via /cc-fb
 ```
 
-## 入出力 path
+## I/O paths
 
-| 種類 | path |
+| Kind | Path |
 |---|---|
 | Inventory | `${CLAUDE_PLUGIN_DATA}/inventory-$(date +%Y%m%d).json` |
 | Source cache | `${CLAUDE_PLUGIN_DATA}/cache/` |
-| Cache index (ETag 等) | `${CLAUDE_PLUGIN_DATA}/cache/index.json` |
+| Cache index (ETag, etc.) | `${CLAUDE_PLUGIN_DATA}/cache/index.json` |
 | Report (primary) | `tmp/harness-gap-$(date +%Y%m%d).html` |
 | Report (fallback) | `${CLAUDE_PLUGIN_DATA}/harness-gap-$(date +%Y%m%d).html` |
 | Rubric | `${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/rubric/claude-code.yaml` |
 | Sources | `${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/sources/*.yaml` |
 
-## rubric の見方
+## Rubric semantics
 
-report の各 dimension は 5 つのラベルで分類される:
+Each dimension in the report is classified with one of five labels:
 
-| ラベル | 意味 | UI 色 |
+| Label | Meaning | UI color |
 |---|---|---|
-| `adopted` | 採用済み。該当ファイル / 設定の path 付き | green |
-| `missing-required` | 公式が「必須 / 強く推奨」している項目で抜けている | red |
-| `missing-recommended` | あると便利、入れている人が多い | amber |
-| `not-needed` | 自分の運用には不要と明示的にマークしたもの | gray |
-| `unknown` | inventory からは判定不能。手動確認が要る | blue |
+| `adopted` | Adopted, with path to the relevant file / setting | green |
+| `missing-required` | Item the official docs deem required / strongly recommended, but absent | red |
+| `missing-recommended` | Nice-to-have, commonly adopted | amber |
+| `not-needed` | Explicitly marked as unnecessary for this operation | gray |
+| `unknown` | Cannot be determined from inventory; manual review required | blue |
 
-`not-needed` は `~/.claude/.harness-gap-overrides.yaml` で項目ごとにマークできる。
+`not-needed` can be marked per-item via `~/.claude/.harness-gap-overrides.yaml`.
 
-### gotcha 検知
+### Gotcha detection
 
-rubric とは別に、以下の「アンチパターン」を triggered gotchas として並べる:
+Separately from the rubric, the following antipatterns are listed as triggered gotchas:
 
-- `CLAUDE.md` が 500 行超 → 分割推奨
-- skill SKILL.md が 500 行超 → 分割推奨
-- `settings.json` に deprecated key（旧 `mcpServers` 配下の旧 schema 等）
-- `permissions.allow` に過剰広範な glob（`**`, `*` 単独）
-- hooks に `PreToolUse` 同一 matcher の重複
-- skill description に trigger phrase が無い
+- `CLAUDE.md` over 500 lines → recommend splitting
+- A `SKILL.md` over 500 lines → recommend splitting
+- Deprecated keys in `settings.json` (old `mcpServers` schema, etc.)
+- Overly broad globs in `permissions.allow` (`**`, lone `*`)
+- Duplicate `PreToolUse` matchers in hooks
+- Skill descriptions missing trigger phrases
 
-## 情報源
+## Sources
 
-`sources/anthropic.yaml` と `sources/community.yaml` で管理。代表例:
+Managed under `sources/anthropic.yaml` and `sources/community.yaml`. Examples:
 
-| カテゴリ | URL 例 |
+| Category | URL example |
 |---|---|
-| Anthropic 公式 doc | `https://docs.claude.com/en/docs/claude-code/overview` |
+| Anthropic official docs | `https://docs.claude.com/en/docs/claude-code/overview` |
 | Anthropic engineering blog | `https://www.anthropic.com/engineering/claude-code-best-practices` |
 | Anthropic GitHub | `https://github.com/anthropics/claude-code` |
 | Cursor docs | `https://docs.cursor.com/` |
 | Cline docs | `https://docs.cline.bot/` |
 | Devin docs | `https://docs.devin.ai/` |
 | AGENTS.md spec | `https://agents.md/` |
-| OpenAI Codex / Aider 等 community | community.yaml に列挙 |
+| OpenAI Codex / Aider, etc. community | listed in community.yaml |
 
-source を増やしたい場合は yaml に URL と `category` を追加するだけ。
-report 上は category 別 panel で並ぶ。
+To add a source, append the URL and `category` to the YAML. The report lays out panels
+per category.
 
-## 定期実行
+## Scheduled use
 
-`/schedule` skill と組み合わせて、毎日 fetch / 週 1 audit を回す:
+Combine with the `/schedule` skill to fetch daily and audit weekly:
 
 ```bash
-# 毎朝 08:00 JST に source 更新だけ走らせて差分を貯める
+# Pull source updates every morning at 08:00 JST so the diff accumulates
 /schedule "0 8 * * *" "/harness-gap update-sources"
 
-# 毎週月曜 09:00 JST に full audit + report 生成
+# Full audit + report every Monday at 09:00 JST
 /schedule "0 9 * * MON" "/harness-gap audit"
 ```
 
-更新差分は report 上部の "What changed since last run" panel に出る。
-公式 doc 側で deprecated 化された設定がここで早期検知される想定。
+The update diff appears in the report's "What changed since last run" panel at the top.
+Settings that go deprecated in official docs surface here early.
 
-## 拡張
+## Extensions
 
-### `--local-insights <dir>` で自前の rubric を足す
+### `--local-insights <dir>` adds your own rubric entries
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/render-report.py \
@@ -184,27 +195,31 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/render-report.py \
   ...
 ```
 
-`<dir>` 配下の `*.md` は frontmatter の `dimension:` `category:` `priority:` を見て
-rubric に追加される。自分の team の運用 doc / カンファレンス talk のメモ / 個人の運用 note を rubric 化できる。
+Markdown files under `<dir>` are appended to the rubric based on their frontmatter
+`dimension:` `category:` `priority:`. Team operations docs / conference talk notes /
+personal operations notes can all be rubric-ized.
 
-### 個別 dimension の suppress
+### Suppressing individual dimensions
 
 `~/.claude/.harness-gap-overrides.yaml`:
 
 ```yaml
 not_needed:
   - dimension: mcp.github
-    reason: "GitHub は gh CLI で十分"
+    reason: "gh CLI is sufficient for GitHub"
   - dimension: hooks.notification
-    reason: "通知は別 daemon が処理"
+    reason: "A separate daemon handles notifications"
 ```
 
-`not-needed` 列に明示マーク付きで並ぶ。`missing-required` から外れる。
+These appear in the `not-needed` column with the marked reason and are dropped from
+`missing-required`.
 
-## 制約
+## Constraints
 
-- harness は **read-only**。`~/.claude/` も `<repo>/.claude/` も書き換えない
-- 書き込み先は `${CLAUDE_PLUGIN_DATA}/` と cwd の `tmp/` のみ
-- ネットワークは WebFetch で source URL を取りに行くのみ。inventory / harness の中身を外に送らない
-- gap 検出後の改修は **提案のみ**。実際の harness 反映は `/cc-fb` 経由で別途行う
-- 公式 doc / community doc を最新ベストプラクティスとみなすが、保証はしない。最終判断は人間
+- Harness is **read-only**. Neither `~/.claude/` nor `<repo>/.claude/` are modified
+- Writes only to `${CLAUDE_PLUGIN_DATA}/` and cwd's `tmp/`
+- Network access is limited to WebFetch against source URLs — inventory / harness contents
+  are never sent outside
+- Post-detection remediation is **proposal only**. Actual harness changes go through `/cc-fb`
+- Official docs / community docs are treated as the latest best practice but with no
+  guarantee. Final judgment stays with the human

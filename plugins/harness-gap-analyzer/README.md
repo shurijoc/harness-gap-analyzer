@@ -1,3 +1,5 @@
+Read this in: **English** | [日本語](README.ja.md)
+
 # Harness Gap Analyzer
 
 Find the gaps in your Claude Code harness before they bite you.

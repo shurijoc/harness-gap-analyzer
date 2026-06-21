@@ -1,3 +1,5 @@
+Read this in: **English** | [日本語](README.ja.md)
+
 # harness-gap-analyzer
 
 > Continuous harness gap analyzer for Claude Code — compare your local config against Anthropic + community best practices, and surface what's missing.
@@ -6,7 +8,9 @@
 
 ## TL;DR
 
-Your Claude Code harness (settings.json, hooks, permissions, skills, rules) drifts over time. Meanwhile, Anthropic and the community keep publishing new best practices. Nobody notices the gap until something breaks. This marketplace ships a single plugin — `harness-gap-analyzer` — that inventories your local harness, fetches canonical best-practice sources, and renders a side-by-side gap report with concrete fix suggestions.
+Your Claude Code harness (`settings.json`, hooks, permissions, skills, rules) drifts over time. Meanwhile, Anthropic and the community keep publishing new best practices. Nobody notices the gap until something breaks.
+
+This marketplace ships a single plugin — `harness-gap-analyzer` — that inventories your local harness, fetches canonical best-practice sources, and renders a side-by-side gap report with concrete fix suggestions.
 
 Install:
 
@@ -15,18 +19,22 @@ Install:
 /plugin install harness-gap-analyzer@harness-gap-analyzer
 ```
 
+Then run `/harness-gap` from any Claude Code session.
+
 ## What's inside this marketplace
 
 | Plugin | Description |
 |---|---|
-| `harness-gap-analyzer` | Audit your Claude Code harness against canonical best practices. Inventories local config, fetches Anthropic + community sources, and renders an HTML gap report. |
+| `harness-gap-analyzer` | Audit your Claude Code harness against canonical best practices. Inventories local config, fetches Anthropic + community sources, and renders a self-contained HTML gap report. |
+
+More plugins may land here later, but the marketplace is intentionally narrow: one job, done well.
 
 ## Why
 
-- Harness configs drift. You add a hook for one project, forget to propagate it, and three months later the rule is wrong everywhere.
-- Best practices update. Anthropic ships new SDK features, the community publishes new rubrics, and your `settings.json` keeps using the 2024 shape.
-- No one notices. There's no CI for "is your harness still aligned with what Claude Code currently recommends?"
-- Most existing tools audit *one* side — either your local config or the upstream docs. This plugin audits **both** and shows the delta.
+- **Harness configs drift.** You add a hook for one project, forget to propagate it, and three months later the rule is wrong everywhere.
+- **Best practices update.** Anthropic ships new SDK features, the community publishes new rubrics, and your `settings.json` keeps using the 2024 shape.
+- **No one notices.** There's no CI for "is your harness still aligned with what Claude Code currently recommends?"
+- **Existing tools audit one side.** They check either your local config or the upstream docs. This plugin audits **both** and shows the delta.
 
 The goal is a single skill you can run weekly: "where is my harness lagging, and what's the smallest patch to close the gap?"
 
@@ -34,7 +42,7 @@ The goal is a single skill you can run weekly: "where is my harness lagging, and
 
 Three steps, run by the `harness-gap` skill inside the plugin:
 
-1. **Inventory** — walk the local repo + `~/.claude/` and collect every config surface that matters: `settings.json`, `settings.local.json`, hooks, permissions, skills (`.claude/skills/`), rules (`.claude/rules/`), CLAUDE.md files. Output: a normalized JSON snapshot of what your harness *currently* does.
+1. **Inventory** — walk the local repo and `~/.claude/` to collect every config surface that matters: `settings.json`, `settings.local.json`, hooks, permissions, skills (`.claude/skills/`), rules (`.claude/rules/`), CLAUDE.md files. Output: a normalized JSON snapshot of what your harness *currently* does.
 2. **Fetch** — pull canonical best-practice sources defined in `sources/anthropic.yaml` and `sources/community.yaml`. Cached locally so re-runs are cheap. Output: a rubric of what your harness *should* do, with citations.
 3. **Render** — diff inventory vs. rubric using `rubric/claude-code.yaml`, then render a self-contained HTML report (no JS, no external CSS) into `tmp/harness-gap-report.html`. Each gap has a severity, a citation to the source, and a copy-pasteable fix.
 
@@ -88,7 +96,14 @@ PRs welcome, especially:
 - **New sources** — add an entry to `sources/anthropic.yaml` (official docs) or `sources/community.yaml` (blog posts, well-maintained repos). Each source needs a `url`, `fetched_at` placeholder, and a short `summary`.
 - **Better rendering** — `templates/report.html` is intentionally simple. Improvements that keep it self-contained (no JS, no external assets) are very welcome.
 
-Before opening a PR, run `claude plugin validate ./plugins/harness-gap-analyzer` and make sure `python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"` passes.
+Before opening a PR, run:
+
+```
+claude plugin validate ./plugins/harness-gap-analyzer
+python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+```
+
+Both should pass cleanly.
 
 ## Submitting to claude-community
 

@@ -44,6 +44,79 @@ except ImportError:  # pragma: no cover
 
 SENTINEL = "<!-- HARNESS_GAP_CONTENT -->"
 
+
+# ----------------------------- i18n strings -----------------------------
+
+STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "lead": (
+            "Cross-checking the harness inventory against the rubric, this report "
+            "summarizes <strong>missing required / recommended</strong> items and "
+            "currently triggered gotchas. Scope and adoption rate are in § 1; "
+            "priority actions are in § 8."
+        ),
+        "section_summary": "Summary",
+        "section_adopted": "Adopted",
+        "section_missing": "Missing (required / recommended)",
+        "section_not_needed": "Not needed (optional fails)",
+        "section_unknown": "Undetermined",
+        "section_gotchas": "Gotchas triggered",
+        "section_sources": "Source updates",
+        "section_next": "Next actions",
+        "collapsed_not_needed": "Not needed (optional fail)",
+        "collapsed_unknown": "Undetermined",
+        "empty_adopted": "No adopted items.",
+        "empty_missing": "No missing items.",
+        "empty_collapsed": "None.",
+        "empty_gotchas": "No triggers.",
+        "empty_manifest": "No manifest.",
+        "empty_sources": "No source records.",
+        "empty_next": "No missing required items — no next action needed.",
+        "table_id": "id",
+        "table_category": "category",
+        "table_title": "title",
+        "table_detect": "detect",
+        "table_importance": "importance",
+        "table_source": "source",
+        "table_last_fetched": "last fetched",
+        "table_status": "status",
+    },
+    "ja": {
+        "lead": (
+            "harness inventory と rubric を突き合わせ、"
+            "<strong>未採用の required / recommended</strong> と"
+            "発火中の gotchas をまとめた。スコープと採用率は § 1、"
+            "優先アクションは § 8。"
+        ),
+        "section_summary": "概要",
+        "section_adopted": "採用済み",
+        "section_missing": "未採用 (required / recommended)",
+        "section_not_needed": "不要扱い (optional の fail)",
+        "section_unknown": "判定不能",
+        "section_gotchas": "Gotchas triggered",
+        "section_sources": "情報源の更新",
+        "section_next": "次の一手",
+        "collapsed_not_needed": "不要扱い (optional fail)",
+        "collapsed_unknown": "判定不能",
+        "empty_adopted": "採用済みなし。",
+        "empty_missing": "未採用なし。",
+        "empty_collapsed": "なし。",
+        "empty_gotchas": "trigger なし。",
+        "empty_manifest": "manifest なし。",
+        "empty_sources": "情報源の記録なし。",
+        "empty_next": "missing required なし — 次の一手は不要。",
+        "table_id": "id",
+        "table_category": "category",
+        "table_title": "title",
+        "table_detect": "detect",
+        "table_importance": "importance",
+        "table_source": "source",
+        "table_last_fetched": "last fetched",
+        "table_status": "status",
+    },
+}
+
+
 # ----------------------------- helpers -----------------------------
 
 
@@ -606,7 +679,8 @@ def bucket(dim: dict[str, Any], status: str) -> str:
 # ----------------------------- HTML sections -----------------------------
 
 
-def render_stats(summary: dict[str, int], adoption_pct: float) -> str:
+def render_stats(summary: dict[str, int], adoption_pct: float, lang: str) -> str:
+    # Stats labels are intentionally English regardless of lang.
     return f"""
 <div class="stats">
   <div class="stat">
@@ -629,9 +703,10 @@ def render_stats(summary: dict[str, int], adoption_pct: float) -> str:
 """.strip()
 
 
-def render_adopted_table(rows: list[dict[str, Any]]) -> str:
+def render_adopted_table(rows: list[dict[str, Any]], lang: str) -> str:
+    s = STRINGS[lang]
     if not rows:
-        return '<p class="mute">採用済みなし。</p>'
+        return f'<p class="mute">{esc(s["empty_adopted"])}</p>'
     body = []
     for d in rows:
         det = d.get("detect") or {}
@@ -643,14 +718,16 @@ def render_adopted_table(rows: list[dict[str, Any]]) -> str:
         )
     return (
         '<div class="table-scroll"><table>'
-        "<thead><tr><th>id</th><th>category</th><th>title</th><th>detect</th></tr></thead>"
+        f"<thead><tr><th>{esc(s['table_id'])}</th><th>{esc(s['table_category'])}</th>"
+        f"<th>{esc(s['table_title'])}</th><th>{esc(s['table_detect'])}</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
     )
 
 
-def render_missing(rows: list[dict[str, Any]]) -> str:
+def render_missing(rows: list[dict[str, Any]], lang: str) -> str:
+    s = STRINGS[lang]
     if not rows:
-        return '<p class="mute">未採用なし。</p>'
+        return f'<p class="mute">{esc(s["empty_missing"])}</p>'
     # Group by category
     by_cat: dict[str, list[dict[str, Any]]] = {}
     for d in rows:
@@ -678,9 +755,13 @@ def render_missing(rows: list[dict[str, Any]]) -> str:
     return "\n".join(out)
 
 
-def render_collapsed_table(rows: list[dict[str, Any]], summary_label: str) -> str:
+def render_collapsed_table(rows: list[dict[str, Any]], summary_label: str, lang: str) -> str:
+    s = STRINGS[lang]
     if not rows:
-        return f'<details class="section"><summary>{esc(summary_label)} (0)</summary><div class="body"><p class="mute">なし。</p></div></details>'
+        return (
+            f'<details class="section"><summary>{esc(summary_label)} (0)</summary>'
+            f'<div class="body"><p class="mute">{esc(s["empty_collapsed"])}</p></div></details>'
+        )
     body = []
     for d in rows:
         det = d.get("detect") or {}
@@ -693,7 +774,9 @@ def render_collapsed_table(rows: list[dict[str, Any]], summary_label: str) -> st
         )
     table = (
         '<div class="table-scroll"><table>'
-        "<thead><tr><th>id</th><th>category</th><th>title</th><th>detect</th><th>importance</th></tr></thead>"
+        f"<thead><tr><th>{esc(s['table_id'])}</th><th>{esc(s['table_category'])}</th>"
+        f"<th>{esc(s['table_title'])}</th><th>{esc(s['table_detect'])}</th>"
+        f"<th>{esc(s['table_importance'])}</th></tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table></div>"
     )
     return (
@@ -702,9 +785,10 @@ def render_collapsed_table(rows: list[dict[str, Any]], summary_label: str) -> st
     )
 
 
-def render_gotchas(triggered: list[dict[str, Any]]) -> str:
+def render_gotchas(triggered: list[dict[str, Any]], lang: str) -> str:
+    s = STRINGS[lang]
     if not triggered:
-        return '<p class="mute">trigger なし。</p>'
+        return f'<p class="mute">{esc(s["empty_gotchas"])}</p>'
     out = []
     for g in triggered:
         sev = (g.get("severity") or "warn").lower()
@@ -719,12 +803,13 @@ def render_gotchas(triggered: list[dict[str, Any]]) -> str:
     return "\n".join(out)
 
 
-def render_manifest(manifest: dict[str, Any]) -> str:
+def render_manifest(manifest: dict[str, Any], lang: str) -> str:
+    strs = STRINGS[lang]
     if not manifest:
-        return '<p class="mute">manifest なし。</p>'
+        return f'<p class="mute">{esc(strs["empty_manifest"])}</p>'
     sources = manifest.get("sources") or manifest.get("entries") or []
     if not isinstance(sources, list) or not sources:
-        return '<p class="mute">情報源の記録なし。</p>'
+        return f'<p class="mute">{esc(strs["empty_sources"])}</p>'
     rows = []
     for s in sources:
         if not isinstance(s, dict):
@@ -736,18 +821,21 @@ def render_manifest(manifest: dict[str, Any]) -> str:
         name_html = f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(name)}</a>' if url else esc(name)
         rows.append(f"<tr><td>{name_html}</td><td>{esc(last)}</td><td>{esc(status)}</td></tr>")
     if not rows:
-        return '<p class="mute">情報源の記録なし。</p>'
+        return f'<p class="mute">{esc(strs["empty_sources"])}</p>'
     return (
         '<div class="table-scroll"><table>'
-        "<thead><tr><th>source</th><th>last fetched</th><th>status</th></tr></thead>"
+        f"<thead><tr><th>{esc(strs['table_source'])}</th>"
+        f"<th>{esc(strs['table_last_fetched'])}</th>"
+        f"<th>{esc(strs['table_status'])}</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
 
-def render_next_steps(missing_required: list[dict[str, Any]]) -> str:
+def render_next_steps(missing_required: list[dict[str, Any]], lang: str) -> str:
+    s = STRINGS[lang]
     top = missing_required[:3]
     if not top:
-        return '<p class="mute">missing required なし — 次の一手は不要。</p>'
+        return f'<p class="mute">{esc(s["empty_next"])}</p>'
     items = []
     for d in top:
         src = d.get("source_url") or ""
@@ -764,33 +852,34 @@ def render_next_steps(missing_required: list[dict[str, Any]]) -> str:
 def compose_body(
     title: str,
     sections: dict[str, str],
+    lang: str,
 ) -> str:
+    s = STRINGS[lang]
     return f"""
-<p class="lead">harness inventory と rubric を突き合わせ、<strong>未採用の required / recommended</strong> と
-発火中の gotchas をまとめた。スコープと採用率は § 1、優先アクションは § 8。</p>
+<p class="lead">{s['lead']}</p>
 
-<h2 id="summary" class="numbered">概要</h2>
+<h2 id="summary" class="numbered">{esc(s['section_summary'])}</h2>
 {sections['stats']}
 
-<h2 id="adopted" class="numbered">採用済み</h2>
+<h2 id="adopted" class="numbered">{esc(s['section_adopted'])}</h2>
 {sections['adopted']}
 
-<h2 id="missing" class="numbered">未採用 (required / recommended)</h2>
+<h2 id="missing" class="numbered">{esc(s['section_missing'])}</h2>
 {sections['missing']}
 
-<h2 id="not-needed" class="numbered">不要扱い (optional の fail)</h2>
+<h2 id="not-needed" class="numbered">{esc(s['section_not_needed'])}</h2>
 {sections['not_needed']}
 
-<h2 id="unknown" class="numbered">判定不能</h2>
+<h2 id="unknown" class="numbered">{esc(s['section_unknown'])}</h2>
 {sections['unknown']}
 
-<h2 id="gotchas" class="numbered">Gotchas triggered</h2>
+<h2 id="gotchas" class="numbered">{esc(s['section_gotchas'])}</h2>
 {sections['gotchas']}
 
-<h2 id="sources" class="numbered">情報源の更新</h2>
+<h2 id="sources" class="numbered">{esc(s['section_sources'])}</h2>
 {sections['manifest']}
 
-<h2 id="next" class="numbered">次の一手</h2>
+<h2 id="next" class="numbered">{esc(s['section_next'])}</h2>
 {sections['next']}
 """.strip()
 
@@ -884,7 +973,9 @@ def main() -> int:
     ap.add_argument("--output", required=True)
     ap.add_argument("--title", default="Claude Code Harness Gap Report")
     ap.add_argument("--scope", default="repo")
+    ap.add_argument("--lang", choices=["en", "ja"], default="en", help="report language")
     args = ap.parse_args()
+    lang = args.lang
 
     inventory = load_json(args.inventory)
     inventory = normalize_inventory(inventory)
@@ -955,17 +1046,18 @@ def main() -> int:
     }
 
     # 4. Compose body
+    strs = STRINGS[lang]
     sections = {
-        "stats": render_stats(summary, adoption_pct),
-        "adopted": render_adopted_table(adopted),
-        "missing": render_missing(missing),
-        "not_needed": render_collapsed_table(not_needed, "不要扱い (optional fail)"),
-        "unknown": render_collapsed_table(unknown, "判定不能"),
-        "gotchas": render_gotchas(triggered_gotchas),
-        "manifest": render_manifest(manifest),
-        "next": render_next_steps(missing_required),
+        "stats": render_stats(summary, adoption_pct, lang),
+        "adopted": render_adopted_table(adopted, lang),
+        "missing": render_missing(missing, lang),
+        "not_needed": render_collapsed_table(not_needed, strs["collapsed_not_needed"], lang),
+        "unknown": render_collapsed_table(unknown, strs["collapsed_unknown"], lang),
+        "gotchas": render_gotchas(triggered_gotchas, lang),
+        "manifest": render_manifest(manifest, lang),
+        "next": render_next_steps(missing_required, lang),
     }
-    body_html = compose_body(args.title, sections)
+    body_html = compose_body(args.title, sections, lang)
 
     # 5. Inject into template
     tpl_path = Path(args.template)
