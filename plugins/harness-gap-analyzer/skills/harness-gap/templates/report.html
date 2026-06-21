@@ -255,6 +255,7 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px; margin: 20px 0;
   }
+  .stats.hero { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
   .stat {
     border: 1px solid var(--border); border-radius: var(--radius);
     background: var(--surface); padding: 16px 18px; position: relative; overflow: hidden;
@@ -280,6 +281,25 @@
   .stat .delta.up::before   { content: "▲ "; }
   .stat .delta.down { color: var(--warn); }
   .stat .delta.down::before { content: "▼ "; }
+  /* hero severity: red bar/number on missing-required>0, amber on gotchas>0 */
+  .stat.danger::before  { background: var(--warn); }
+  .stat.danger .num     { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--warn); -webkit-text-fill-color: var(--warn); }
+  .stat.warning::before { background: var(--hypo); }
+  .stat.warning .num    { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--hypo); -webkit-text-fill-color: var(--hypo); }
+
+  /* ---- hero verdict line ---- */
+  .hero-verdict {
+    font-size: 15.5px; font-weight: 600; margin: 10px 0 24px;
+    padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--border);
+    background: var(--surface);
+  }
+  .hero-verdict.fact { color: var(--fact); border-left-color: var(--fact); background: var(--fact-bg); }
+  .hero-verdict.warn { color: var(--warn); border-left-color: var(--warn); background: var(--warn-bg); }
+
+  /* ---- action-row (top 3 actions) ---- */
+  .callout.action-row { padding: 14px 16px; }
+  .callout.action-row p { margin: 6px 0; }
+  .callout.action-row strong { font-size: 15.5px; }
 
   /* ---- 表 ---- */
   .table-scroll { overflow-x: auto; margin: 14px 0; border: 1px solid var(--border);

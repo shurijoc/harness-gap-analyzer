@@ -158,6 +158,56 @@ report 上は category 別 panel で並ぶ。
 更新差分は report 上部の "What changed since last run" panel に出る。
 公式 doc 側で deprecated 化された設定がここで早期検知される想定。
 
+## 自動探索とスケジュール
+
+`sources/anthropic.yaml` / `sources/community.yaml` の固定カタログを fetch するだけでなく、
+このスキルには **discovery 層** がついていて、新しいベストプラクティス情報を自動で探しに行く。
+これで rubric が古くなりにくい。探索対象:
+
+- GitHub Topics (`claude-code-plugin`, `claude-skill`, `claude-code`) を star 数でフィルタ
+- `anthropics/claude-code` / `claude-agent-sdk-python` / `claude-agent-sdk-typescript` /
+  `claude-plugins-community` の最近の release
+- https://www.anthropic.com/engineering の新着で、カタログにまだ無いもの
+- `https://code.claude.com/docs/llms.txt` の差分（新規ドキュメントページ）
+- Hacker News で karma が一定以上の "Claude Code" / "Claude Skill" 記事
+- GitHub の code search で SKILL.md + claude-code（世の中の新しい skill 発見）
+
+discovery は read-only。`discovered-YYYYMMDD.yaml` 1 本だけ candidates として吐く。
+**`anthropic.yaml` / `community.yaml` には自動追記しない**。
+人間が見て promote するか判断する。
+
+### 推奨スケジュール
+
+```bash
+# 毎朝 08:00 JST — 新しいベストプラクティスを探す
+/schedule "0 8 * * *" "bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/discover-sources.sh"
+
+# 毎朝 08:30 JST — 既存 source の cache 更新
+/schedule "30 8 * * *" "bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/fetch-sources.sh"
+
+# 毎週月曜 09:00 JST — full audit + report
+/schedule "0 9 * * MON" "/harness-gap audit"
+```
+
+### promote workflow
+
+1. candidates を確認:
+   ```bash
+   yq eval '.candidates[] | select(.signal >= 50)' \
+     ~/.claude/harness-gap/discovered-YYYYMMDD.yaml
+   ```
+2. 残したいものは `community.yaml`（Anthropic 公式面なら `anthropic.yaml`）の `sources:`
+   配下に追記。`cadence` / `method` / `stability` / `confidence` / `category` を埋める。
+3. `/harness-gap audit` を再実行すれば新しい source が fetch され rubric に反映される。
+
+### 要件と fallback
+
+- `discover-sources.sh` は GitHub 探索に `gh` CLI を優先利用する。`gh` が無い or 未認証なら
+  匿名 `api.github.com` 呼び出しに fallback（rate limit ~60/h なので一部 probe が 0 件になる）。
+- 1 probe ごとに 500ms 待つ polite mode + max parallel cap で public API に優しく動く。
+- 個別 probe の失敗は non-blocking。stderr にログを残してそのまま続行するので、rate limit に
+  食われた 1 probe で全体が落ちることは無い。
+
 ## 拡張
 
 ### `--local-insights <dir>` で自前の rubric を足す

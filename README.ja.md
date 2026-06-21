@@ -2,7 +2,23 @@
 
 # harness-gap-analyzer
 
-> Claude Code 用の継続的 harness ギャップアナライザ。ローカル設定を Anthropic 公式とコミュニティのベストプラクティスと突き合わせ、足りていない部分を可視化する。
+> harness-gap-analyzer のプラグインマーケットプレイス。Claude Code 設定を Anthropic 公式 + コミュニティのベストプラクティスと継続的に突き合わせる。
+
+**インストール**
+
+```
+/plugin marketplace add shurijoc/harness-gap-analyzer
+/plugin install harness-gap-analyzer@harness-gap-analyzer
+```
+
+**得られるもの**
+
+- プラグイン 1 本、MIT ライセンス、`sources/*.yaml` 宣言済み公式 doc 以外への通信なし
+- 単一 self-contained HTML レポート — JS なし、外部 CSS なし、オフラインで開ける
+- EN/JA 両方のドキュメントとレポート出力
+
+<details>
+<summary>詳細</summary>
 
 ![status](https://img.shields.io/badge/status-alpha-orange)
 
@@ -12,14 +28,7 @@ Claude Code の harness（`settings.json`、hooks、permissions、skills、rules
 
 このマーケットプレイスは `harness-gap-analyzer` というプラグイン 1 本を提供する。ローカル harness を棚卸しし、正典となるベストプラクティスのソースを取得し、具体的な修正案つきの差分レポートを並べて表示する。
 
-インストール:
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
-
-その後、任意の Claude Code セッションで `/harness-gap` を実行する。
+インストール後、任意の Claude Code セッションで `/harness-gap` を実行する。
 
 ## このマーケットプレイスの中身
 
@@ -46,14 +55,7 @@ Claude Code の harness（`settings.json`、hooks、permissions、skills、rules
 2. **Fetch（取得）** — `sources/anthropic.yaml` と `sources/community.yaml` に定義した正典ソースを取得する。ローカルにキャッシュするので再実行は安い。出力は「この harness が *あるべき姿* で何をすべきか」を citations 付きで持つ rubric
 3. **Render（描画）** — `rubric/claude-code.yaml` を使って inventory と rubric を diff し、self-contained な HTML レポート（JS なし、外部 CSS なし）を `tmp/harness-gap-report.html` に書き出す。各ギャップには severity、ソース citation、コピペ可能な fix が紐づく
 
-## インストール
-
-任意の Claude Code セッションから:
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
+## ディスクからインストール
 
 このリポジトリをローカルに clone してディスクからインストールする場合:
 
@@ -114,3 +116,5 @@ fork して自分用の variant を提出するのは構わない。名前の衝
 ## License
 
 MIT。[LICENSE](./LICENSE) を参照。
+
+</details>

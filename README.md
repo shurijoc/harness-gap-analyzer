@@ -2,7 +2,23 @@ Read this in: **English** | [日本語](README.ja.md)
 
 # harness-gap-analyzer
 
-> Continuous harness gap analyzer for Claude Code — compare your local config against Anthropic + community best practices, and surface what's missing.
+> Plugin marketplace for harness-gap-analyzer. Continuously checks your Claude Code setup against Anthropic + community best practices.
+
+**Install**
+
+```
+/plugin marketplace add shurijoc/harness-gap-analyzer
+/plugin install harness-gap-analyzer@harness-gap-analyzer
+```
+
+**What you get**
+
+- Single plugin, MIT-licensed, no network beyond official docs declared in `sources/*.yaml`
+- Self-contained HTML report — no JS, no external CSS, opens offline
+- EN/JA documentation and report output
+
+<details>
+<summary>Details</summary>
 
 ![status](https://img.shields.io/badge/status-alpha-orange)
 
@@ -11,13 +27,6 @@ Read this in: **English** | [日本語](README.ja.md)
 Your Claude Code harness (`settings.json`, hooks, permissions, skills, rules) drifts over time. Meanwhile, Anthropic and the community keep publishing new best practices. Nobody notices the gap until something breaks.
 
 This marketplace ships a single plugin — `harness-gap-analyzer` — that inventories your local harness, fetches canonical best-practice sources, and renders a side-by-side gap report with concrete fix suggestions.
-
-Install:
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
 
 Then run `/harness-gap` from any Claude Code session.
 
@@ -46,14 +55,7 @@ Three steps, run by the `harness-gap` skill inside the plugin:
 2. **Fetch** — pull canonical best-practice sources defined in `sources/anthropic.yaml` and `sources/community.yaml`. Cached locally so re-runs are cheap. Output: a rubric of what your harness *should* do, with citations.
 3. **Render** — diff inventory vs. rubric using `rubric/claude-code.yaml`, then render a self-contained HTML report (no JS, no external CSS) into `tmp/harness-gap-report.html`. Each gap has a severity, a citation to the source, and a copy-pasteable fix.
 
-## Install
-
-From any Claude Code session:
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
+## Install from disk
 
 If you cloned this repo locally and want to install from disk:
 
@@ -114,3 +116,5 @@ If you want to fork and submit your own variant, that's fine — just change the
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+</details>

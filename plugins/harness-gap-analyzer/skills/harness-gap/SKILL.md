@@ -185,6 +185,59 @@ Combine with the `/schedule` skill to fetch daily and audit weekly:
 The update diff appears in the report's "What changed since last run" panel at the top.
 Settings that go deprecated in official docs surface here early.
 
+## Discover & schedule
+
+Beyond fetching the fixed catalog in `sources/anthropic.yaml` and `sources/community.yaml`,
+the skill ships a **discovery layer** that scans the public web for *new* best-practice
+material so the rubric never goes stale. Probes:
+
+- GitHub Topics (`claude-code-plugin`, `claude-skill`, `claude-code`) filtered by star count
+- Recent releases on `anthropics/claude-code`, `claude-agent-sdk-python`,
+  `claude-agent-sdk-typescript`, `claude-plugins-community`
+- New posts on https://www.anthropic.com/engineering not yet in the catalog
+- New entries diffed against `https://code.claude.com/docs/llms.txt`
+- Hacker News stories above a karma threshold mentioning "Claude Code" / "Claude Skill"
+- GitHub code search for SKILL.md + claude-code (new skills in the wild)
+
+The discovery probe is read-only: it writes a single `discovered-YYYYMMDD.yaml`
+candidates file. **It never auto-appends to `anthropic.yaml` / `community.yaml`** —
+the user reviews and promotes candidates manually.
+
+### Recommended schedule
+
+```bash
+# Daily 08:00 JST — scan for new best-practice sources
+/schedule "0 8 * * *" "bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/discover-sources.sh"
+
+# Daily 08:30 JST — refresh the existing source cache
+/schedule "30 8 * * *" "bash ${CLAUDE_PLUGIN_ROOT}/skills/harness-gap/scripts/fetch-sources.sh"
+
+# Weekly Mon 09:00 JST — full audit + report
+/schedule "0 9 * * MON" "/harness-gap audit"
+```
+
+### Promotion workflow
+
+1. Review the candidates file:
+   ```bash
+   yq eval '.candidates[] | select(.signal >= 50)' \
+     ~/.claude/harness-gap/discovered-YYYYMMDD.yaml
+   ```
+2. For each candidate worth keeping, append a new entry under `sources:` in
+   `community.yaml` (or `anthropic.yaml` if it is an official Anthropic surface),
+   filling in `cadence`, `method`, `stability`, `confidence`, `category`.
+3. Re-run `/harness-gap audit` — the new source is fetched and reflected in the rubric.
+
+### Requirements & fallbacks
+
+- `discover-sources.sh` prefers the `gh` CLI for GitHub probes. If `gh` is missing or
+  unauthenticated, it falls back to anonymous `api.github.com` calls (rate-limited to
+  ~60/hour, so some probes may 0-result).
+- Polite delays (~500ms between probes) and a max-parallel cap keep the script
+  friendly to public APIs.
+- Per-probe failures are non-blocking; the script logs to stderr and continues so a
+  single rate-limited probe never wipes out the whole run.
+
 ## Extensions
 
 ### `--local-insights <dir>` adds your own rubric entries

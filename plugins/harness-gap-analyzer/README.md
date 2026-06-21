@@ -2,9 +2,25 @@ Read this in: **English** | [日本語](README.ja.md)
 
 # Harness Gap Analyzer
 
-Find the gaps in your Claude Code harness before they bite you.
+> Audit your Claude Code harness against the latest Anthropic + community best practices and see what you're missing. Read-only, fully local, single HTML output.
 
-A skill plugin that inventories your local Claude Code setup (rules, skills, hooks, permissions, agents, MCP servers) and compares it against canonical best practices from Anthropic and the wider agent-coding community (Cursor, Cline, Devin, Aider, OpenAI, AGENTS.md). Output is a single self-contained HTML report you can keep open while you fix things.
+**Install**
+
+```
+/plugin marketplace add shurijoc/harness-gap-analyzer
+/plugin install harness-gap-analyzer@harness-gap-analyzer
+```
+
+**What you get**
+
+- 63 rubric dimensions × 8 gotcha detectors, every check cited to an official doc
+- Discovers new sources automatically (GitHub Topics + Anthropic blog + Hacker News)
+- EN/JA report — self-contained HTML, no JS, no CDN, opens offline
+
+**Usage** — `/harness-gap` (re-render, ~10s) · `/harness-gap audit` (full run, 1-3 min) · `/harness-gap update-sources` (refresh cache only)
+
+<details>
+<summary>Details</summary>
 
 ## What it does
 
@@ -17,22 +33,9 @@ A skill plugin that inventories your local Claude Code setup (rules, skills, hoo
 
 It does not edit your harness. It only tells you what's missing.
 
-## Install
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
+## Post-install
 
 After install, restart Claude Code or run `/plugin reload` so the `harness-gap` skill is picked up.
-
-## Usage
-
-| Command | What it does |
-|---|---|
-| `/harness-gap` | Re-render the report using the existing source cache and a fresh inventory. Fast (~10s). |
-| `/harness-gap audit` | Full run: refresh inventory, fetch all sources, render report. Slower (1-3 min). |
-| `/harness-gap update-sources` | Only refresh the source cache. No report. Good for nightly cron. |
 
 Trigger phrases like "harness の gap を分析", "claude code best practices と比較", "ベストプラクティスから抜けがあるか見て" also fire the skill.
 
@@ -142,3 +145,5 @@ Two easy ways to contribute without writing code:
 2. **New source** — open a PR adding a URL + category to `skills/harness-gap/sources/anthropic.yaml` or `community.yaml`.
 
 Code contributions for new gotcha detectors are welcome too. Each detector is a small function in `scripts/render-report.py`; keep them pure and add a test fixture under `tests/`.
+
+</details>

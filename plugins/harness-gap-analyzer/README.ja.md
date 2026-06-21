@@ -2,9 +2,25 @@
 
 # Harness Gap Analyzer
 
-自分の Claude Code harness の穴を、痛い目に遭う前に見つけるためのプラグイン。
+> Claude Code harness を最新の Anthropic 公式 + コミュニティのベストプラクティスと突き合わせ、何が抜けているかを可視化する。read-only、完全ローカル、出力は単一 HTML。
 
-ローカルの Claude Code 設定（rules / skills / hooks / permissions / agents / MCP servers）を棚卸しし、Anthropic 公式と広いエージェントコーディングコミュニティ（Cursor / Cline / Devin / Aider / OpenAI / AGENTS.md）のベストプラクティスと突き合わせる skill plugin。出力は単一の self-contained HTML レポート 1 枚で、修正作業中ずっと開いておける形。
+**インストール**
+
+```
+/plugin marketplace add shurijoc/harness-gap-analyzer
+/plugin install harness-gap-analyzer@harness-gap-analyzer
+```
+
+**得られるもの**
+
+- 63 の rubric dimension × 8 の gotcha detector、全 check が公式 doc に citation 付き
+- 新しいソースを自動発見（GitHub Topics + Anthropic blog + Hacker News）
+- EN/JA レポート — self-contained HTML、JS なし、CDN なし、オフラインで開ける
+
+**使い方** — `/harness-gap`（再レンダ、〜10秒）・`/harness-gap audit`（フル run、1〜3分）・`/harness-gap update-sources`（cache のみ更新）
+
+<details>
+<summary>詳細</summary>
 
 ## できること
 
@@ -17,22 +33,9 @@
 
 harness を編集はしない。何が足りていないかを教えるだけ。
 
-## インストール
-
-```
-/plugin marketplace add shurijoc/harness-gap-analyzer
-/plugin install harness-gap-analyzer@harness-gap-analyzer
-```
+## インストール後
 
 インストール後、Claude Code を再起動するか `/plugin reload` を叩いて `harness-gap` skill を認識させる。
-
-## 使い方
-
-| コマンド | 動作 |
-|---|---|
-| `/harness-gap` | 既存の source cache と新しい inventory でレポートを再レンダ。速い（〜10秒） |
-| `/harness-gap audit` | フル run: inventory 更新 + 全 source fetch + レポート再描画。遅め（1〜3分） |
-| `/harness-gap update-sources` | source cache のみ更新。レポートは作らない。夜間 cron 向け |
 
 「harness の gap を分析」「claude code best practices と比較」「ベストプラクティスから抜けがあるか見て」などのトリガーフレーズでも起動する。
 
@@ -142,3 +145,5 @@ MIT。`LICENSE` 参照。
 2. **新しい source** — `skills/harness-gap/sources/anthropic.yaml` か `community.yaml` に URL + category 追加の PR
 
 新しい gotcha detector のコード貢献も歓迎。各 detector は `scripts/render-report.py` の小さな関数。pure に保ち、`tests/` 配下に fixture を 1 つ追加する。
+
+</details>

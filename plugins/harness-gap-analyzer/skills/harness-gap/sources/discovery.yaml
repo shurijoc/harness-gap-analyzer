@@ -1,0 +1,90 @@
+# discovery.yaml
+# -----------------------------------------------------------------------------
+# Configuration for `discover-sources.sh`.
+#
+# Each query under `queries:` declares a probe that scans the public web for
+# new Claude Code / Anthropic / agent-harness best-practice material. The
+# script emits candidates to a YAML for human review — it never auto-appends
+# to anthropic.yaml or community.yaml.
+#
+# Probe kinds:
+#   github_topic         Search GitHub repos by topic, filter by stargazers
+#   github_repo_releases Recent releases for a fixed repo
+#   anthropic_blog_index Scrape https://www.anthropic.com/engineering index
+#   claude_docs_llms_txt Diff against the canonical llms.txt index
+#   hn_query             Hacker News Algolia search by query
+#   github_search_code   GitHub code search (e.g. SKILL.md + claude-code)
+#
+# Field semantics:
+#   id          stable kebab-case identifier (used as first_seen_via)
+#   kind        one of the probe kinds above
+#   topic       (github_topic) topic slug, no leading colon
+#   repo        (github_repo_releases) "<owner>/<name>"
+#   url         (anthropic_blog_index, claude_docs_llms_txt) target URL
+#   query       (hn_query, github_search_code) free-text search query
+#   min_stars   (github_topic) skip repos under this star count
+#   min_points  (hn_query) skip hits under this karma/score
+# -----------------------------------------------------------------------------
+
+meta:
+  catalog_version: 1
+  updated: 2026-06-21
+
+queries:
+  - id: github-topic-claude-code-plugin
+    kind: github_topic
+    topic: claude-code-plugin
+    min_stars: 30
+
+  - id: github-topic-claude-skill
+    kind: github_topic
+    topic: claude-skill
+    min_stars: 20
+
+  - id: github-topic-claude-code
+    kind: github_topic
+    topic: claude-code
+    min_stars: 100
+
+  - id: gh-claude-code-releases
+    kind: github_repo_releases
+    repo: anthropics/claude-code
+
+  - id: gh-agent-sdk-py-releases
+    kind: github_repo_releases
+    repo: anthropics/claude-agent-sdk-python
+
+  - id: gh-agent-sdk-ts-releases
+    kind: github_repo_releases
+    repo: anthropics/claude-agent-sdk-typescript
+
+  - id: gh-claude-plugins-community-releases
+    kind: github_repo_releases
+    repo: anthropics/claude-plugins-community
+
+  - id: anthropic-blog
+    kind: anthropic_blog_index
+    url: https://www.anthropic.com/engineering
+
+  - id: claude-docs-llms
+    kind: claude_docs_llms_txt
+    url: https://code.claude.com/docs/llms.txt
+
+  - id: hn-claude-code
+    kind: hn_query
+    query: Claude Code
+    min_points: 50
+
+  - id: hn-claude-skill
+    kind: hn_query
+    query: Claude Skill
+    min_points: 30
+
+  - id: gh-code-skill-md-claude-code
+    kind: github_search_code
+    query: "SKILL.md claude-code"
+
+fetch_policy:
+  user_agent: "harness-gap-analyzer/0.2 (+https://github.com/shurijoc/harness-gap-analyzer)"
+  rate_limit_ms: 500
+  max_parallel: 4

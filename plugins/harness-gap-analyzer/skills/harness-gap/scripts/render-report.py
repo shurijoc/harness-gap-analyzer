@@ -50,11 +50,11 @@ SENTINEL = "<!-- HARNESS_GAP_CONTENT -->"
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "lead": (
-            "Cross-checking the harness inventory against the rubric, this report "
-            "summarizes <strong>missing required / recommended</strong> items and "
-            "currently triggered gotchas. Scope and adoption rate are in § 1; "
-            "priority actions are in § 8."
+            "Cross-checking the harness inventory against the rubric. "
+            "The top three actions are above; full evidence is below."
         ),
+        "section_hero": "Status",
+        "section_top_actions": "Top 3 next actions",
         "section_summary": "Summary",
         "section_adopted": "Adopted",
         "section_missing": "Missing (required / recommended)",
@@ -72,6 +72,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "empty_manifest": "No manifest.",
         "empty_sources": "No source records.",
         "empty_next": "No missing required items — no next action needed.",
+        "empty_top_actions": "Looking solid — nothing to act on right now.",
         "table_id": "id",
         "table_category": "category",
         "table_title": "title",
@@ -80,14 +81,24 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_source": "source",
         "table_last_fetched": "last fetched",
         "table_status": "status",
+        "table_why": "why it matters",
+        "stat_adoption": "adoption (req+rec)",
+        "stat_missing_req": "missing required",
+        "stat_gotchas": "gotchas triggered",
+        "hero_verdict_clean": "Looking solid — no required items missing and no gotchas triggered.",
+        "hero_verdict_action_needed": "{n} actions needed — see the top 3 below.",
+        "fix_hint_label": "Fix",
+        "source_link_label": "Source",
+        "changed_tag": "↻ changed",
+        "sources_tracking_line": "{n} sources tracked · {m} changed in last run",
     },
     "ja": {
         "lead": (
-            "harness inventory と rubric を突き合わせ、"
-            "<strong>未採用の required / recommended</strong> と"
-            "発火中の gotchas をまとめた。スコープと採用率は § 1、"
-            "優先アクションは § 8。"
+            "harness inventory と rubric の突き合わせ結果。"
+            "優先アクションは上に、根拠は下にまとめた。"
         ),
+        "section_hero": "現況",
+        "section_top_actions": "Top 3 次の一手",
         "section_summary": "概要",
         "section_adopted": "採用済み",
         "section_missing": "未採用 (required / recommended)",
@@ -105,6 +116,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "empty_manifest": "manifest なし。",
         "empty_sources": "情報源の記録なし。",
         "empty_next": "missing required なし — 次の一手は不要。",
+        "empty_top_actions": "概ね OK — 今すぐ手を打つ項目なし。",
         "table_id": "id",
         "table_category": "category",
         "table_title": "title",
@@ -113,6 +125,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_source": "source",
         "table_last_fetched": "last fetched",
         "table_status": "status",
+        "table_why": "why it matters",
+        "stat_adoption": "adoption (req+rec)",
+        "stat_missing_req": "missing required",
+        "stat_gotchas": "gotchas triggered",
+        "hero_verdict_clean": "概ね OK — required 未対応なし、gotchas trigger なし。",
+        "hero_verdict_action_needed": "{n} 件の対応が必要 — Top 3 を下に示す。",
+        "fix_hint_label": "対応",
+        "source_link_label": "出典",
+        "changed_tag": "↻ 更新",
+        "sources_tracking_line": "ソース {n} 件監視 · 前回 {m} 件更新",
     },
 }
 
@@ -703,6 +725,134 @@ def render_stats(summary: dict[str, int], adoption_pct: float, lang: str) -> str
 """.strip()
 
 
+def render_hero(summary: dict[str, int], adoption_pct: float, lang: str) -> str:
+    """Top hero block: 3 stats + verdict line. Non-collapsible."""
+    s = STRINGS[lang]
+    miss_req = summary["missing_required"]
+    gotchas = summary["gotchas_triggered"]
+    miss_cls = " danger" if miss_req > 0 else ""
+    got_cls = " warning" if gotchas > 0 else ""
+
+    actions_count = miss_req + gotchas
+    if actions_count == 0:
+        verdict = s["hero_verdict_clean"]
+        verdict_cls = "fact"
+    else:
+        verdict = s["hero_verdict_action_needed"].format(n=actions_count)
+        verdict_cls = "warn"
+
+    return f"""
+<div class="stats hero">
+  <div class="stat">
+    <div class="num">{adoption_pct:.0f}<span class="unit">%</span></div>
+    <div class="label">{esc(s['stat_adoption'])}</div>
+  </div>
+  <div class="stat{miss_cls}">
+    <div class="num">{miss_req}</div>
+    <div class="label">{esc(s['stat_missing_req'])}</div>
+  </div>
+  <div class="stat{got_cls}">
+    <div class="num">{gotchas}</div>
+    <div class="label">{esc(s['stat_gotchas'])}</div>
+  </div>
+</div>
+<p class="hero-verdict {verdict_cls}">{esc(verdict)}</p>
+""".strip()
+
+
+def _action_importance_rank(imp: str) -> int:
+    imp = (imp or "").lower()
+    return {"required": 0, "recommended": 1, "optional": 2}.get(imp, 3)
+
+
+def render_top_actions(
+    missing_req: list[dict[str, Any]],
+    missing_rec: list[dict[str, Any]],
+    gotchas: list[dict[str, Any]],
+    lang: str,
+    k: int = 3,
+) -> str:
+    """Pick top-k actions across missing-required, missing-recommended, gotchas.
+
+    Priority: missing-required → triggered gotchas → missing-recommended.
+    Within each pool, sort by category alphabetical for stability.
+    Emit one .callout per action.
+    """
+    s = STRINGS[lang]
+
+    pool: list[dict[str, Any]] = []
+    for d in sorted(missing_req, key=lambda x: (x.get("category") or "")):
+        pool.append({"kind": "missing", "imp": "required", "dim": d})
+    for g in gotchas:
+        pool.append({"kind": "gotcha", "imp": "required", "g": g})
+    for d in sorted(missing_rec, key=lambda x: (x.get("category") or "")):
+        pool.append({"kind": "missing", "imp": "recommended", "dim": d})
+
+    top = pool[:k]
+    if not top:
+        return f'<p class="callout fact"><span class="tag">OK</span> {esc(s["empty_top_actions"])}</p>'
+
+    out: list[str] = []
+    for item in top:
+        if item["kind"] == "missing":
+            d = item["dim"]
+            imp = (d.get("importance") or "").lower()
+            cls = "warn" if imp == "required" else "hypo"
+            tag = (d.get("importance") or "").upper()
+            cat = d.get("category") or ""
+            title = d.get("title") or ""
+            why = d.get("why_matters") or ""
+            src = d.get("source_url") or ""
+            fix_lines: list[str] = []
+            if src:
+                fix_lines.append(
+                    f'<p><strong>{esc(s["fix_hint_label"])}:</strong> '
+                    f'<a href="{esc(src)}" target="_blank" rel="noopener">'
+                    f'{esc(s["source_link_label"])}: {esc(title)}</a></p>'
+                )
+            else:
+                definition = d.get("definition") or ""
+                if definition:
+                    fix_lines.append(
+                        f'<p><strong>{esc(s["fix_hint_label"])}:</strong> '
+                        f'<code>{esc(definition)}</code></p>'
+                    )
+            out.append(
+                f'<div class="callout {cls} action-row">'
+                f'<span class="tag">{esc(tag)} · {esc(cat)} · {esc(d.get("id"))}</span>'
+                f'<p><strong>{esc(title)}</strong></p>'
+                f'<p class="mute">{esc(why)}</p>'
+                + "".join(fix_lines)
+                + "</div>"
+            )
+        else:  # gotcha
+            g = item["g"]
+            sev = (g.get("severity") or "warn").upper()
+            cat = g.get("category") or "gotcha"
+            title = g.get("title") or ""
+            fix = g.get("fix_hint") or ""
+            src = g.get("source_url") or ""
+            src_html = (
+                f' <a href="{esc(src)}" target="_blank" rel="noopener">'
+                f'{esc(s["source_link_label"])}</a>'
+                if src
+                else ""
+            )
+            fix_html = (
+                f'<p><strong>{esc(s["fix_hint_label"])}:</strong> {esc(fix)}</p>'
+                if fix
+                else ""
+            )
+            out.append(
+                f'<div class="callout warn action-row">'
+                f'<span class="tag">GOTCHA · {esc(cat)} · {esc(g.get("id"))}</span>'
+                f'<p><strong>{esc(title)}</strong>{src_html}</p>'
+                + fix_html
+                + "</div>"
+            )
+    return "\n".join(out)
+
+
 def render_adopted_table(rows: list[dict[str, Any]], lang: str) -> str:
     s = STRINGS[lang]
     if not rows:
@@ -728,30 +878,66 @@ def render_missing(rows: list[dict[str, Any]], lang: str) -> str:
     s = STRINGS[lang]
     if not rows:
         return f'<p class="mute">{esc(s["empty_missing"])}</p>'
-    # Group by category
+
+    # Sort: required first, then recommended; within tier alphabetical by category, then id
+    def _key(d: dict[str, Any]) -> tuple[int, str, str]:
+        return (
+            _action_importance_rank(d.get("importance") or ""),
+            (d.get("category") or "").lower(),
+            (d.get("id") or "").lower(),
+        )
+
+    rows_sorted = sorted(rows, key=_key)
+
+    # Group by category preserving sorted order (required first means each category
+    # may appear twice if it has both req and rec — we still group by category alone
+    # to keep the visual compact, but rows within a category are still ordered req→rec).
     by_cat: dict[str, list[dict[str, Any]]] = {}
-    for d in rows:
-        by_cat.setdefault(d.get("category", "other"), []).append(d)
-    out: list[str] = []
+    for d in rows_sorted:
+        by_cat.setdefault(d.get("category") or "other", []).append(d)
+    # Re-order categories: those with any required item first, then alphabetical
+    cats_with_req: list[str] = []
+    cats_rec_only: list[str] = []
     for cat, items in by_cat.items():
+        if any((it.get("importance") or "").lower() == "required" for it in items):
+            cats_with_req.append(cat)
+        else:
+            cats_rec_only.append(cat)
+    cats_ordered = sorted(cats_with_req) + sorted(cats_rec_only)
+
+    out: list[str] = []
+    for cat in cats_ordered:
+        items = by_cat[cat]
         out.append(f"<h3>{esc(cat)}</h3>")
+        body: list[str] = []
         for d in items:
-            cls = "warn" if (d.get("importance") or "").lower() == "required" else "hypo"
-            tag = (d.get("importance") or "").upper()
+            imp = (d.get("importance") or "").lower()
+            imp_label = imp.upper() or "—"
             src = d.get("source_url") or ""
             src_html = (
-                f' <a href="{esc(src)}" target="_blank" rel="noopener">[source]</a>' if src else ""
+                f'<a href="{esc(src)}" target="_blank" rel="noopener">'
+                f'{esc(s["source_link_label"])}</a>'
+                if src
+                else '<span class="mute">—</span>'
             )
-            why = esc(d.get("why_matters") or "")
-            fix = esc(d.get("definition") or "")
-            out.append(
-                f'<div class="callout {cls}">'
-                f'<span class="tag">{esc(tag)} · {esc(d.get("id"))}</span>'
-                f'<p><strong>{esc(d.get("title"))}</strong>{src_html}</p>'
-                f'<p class="mute">{why}</p>'
-                f"<p><code>{fix}</code></p>"
-                "</div>"
+            body.append(
+                "<tr>"
+                f"<td><code>{esc(d.get('id'))}</code></td>"
+                f"<td>{esc(d.get('title'))}</td>"
+                f"<td>{esc(imp_label)}</td>"
+                f"<td>{esc(d.get('why_matters') or '')}</td>"
+                f"<td>{src_html}</td>"
+                "</tr>"
             )
+        out.append(
+            '<div class="table-scroll"><table>'
+            f"<thead><tr><th>{esc(s['table_id'])}</th>"
+            f"<th>{esc(s['table_title'])}</th>"
+            f"<th>{esc(s['table_importance'])}</th>"
+            f"<th>{esc(s['table_why'])}</th>"
+            f"<th>{esc(s['table_source'])}</th></tr></thead>"
+            f"<tbody>{''.join(body)}</tbody></table></div>"
+        )
     return "\n".join(out)
 
 
@@ -810,43 +996,49 @@ def render_manifest(manifest: dict[str, Any], lang: str) -> str:
     sources = manifest.get("sources") or manifest.get("entries") or []
     if not isinstance(sources, list) or not sources:
         return f'<p class="mute">{esc(strs["empty_sources"])}</p>'
-    rows = []
-    for s in sources:
-        if not isinstance(s, dict):
-            continue
-        name = s.get("name") or s.get("id") or s.get("url") or "?"
-        last = s.get("last_fetched") or s.get("fetched_at") or "-"
-        status = s.get("status") or ("changed" if s.get("changed") else "-")
-        url = s.get("url") or ""
-        name_html = f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(name)}</a>' if url else esc(name)
-        rows.append(f"<tr><td>{name_html}</td><td>{esc(last)}</td><td>{esc(status)}</td></tr>")
+
+    # Filter valid dicts; sort by fetched_at desc (lexicographic on ISO works).
+    valid = [s for s in sources if isinstance(s, dict)]
+
+    def _ts(s: dict[str, Any]) -> str:
+        return str(s.get("fetched_at") or s.get("last_fetched") or "")
+
+    valid_sorted = sorted(valid, key=_ts, reverse=True)
+    total = len(valid_sorted)
+    changed_total = sum(1 for s in valid_sorted if s.get("changed"))
+    top = valid_sorted[:8]
+
+    rows: list[str] = []
+    for src in top:
+        name = src.get("name") or src.get("id") or src.get("url") or "?"
+        last = src.get("fetched_at") or src.get("last_fetched") or "-"
+        url = src.get("url") or ""
+        name_html = (
+            f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(name)}</a>'
+            if url
+            else esc(name)
+        )
+        if src.get("changed"):
+            status_html = (
+                f'<span class="badge hypo">{esc(strs["changed_tag"])}</span>'
+            )
+        else:
+            status_html = f'<span class="mute">{esc(src.get("status") or "-")}</span>'
+        rows.append(
+            f"<tr><td>{name_html}</td><td>{esc(last)}</td><td>{status_html}</td></tr>"
+        )
     if not rows:
         return f'<p class="mute">{esc(strs["empty_sources"])}</p>'
+
+    tracking = strs["sources_tracking_line"].format(n=total, m=changed_total)
     return (
+        f'<p class="mute">{esc(tracking)}</p>'
         '<div class="table-scroll"><table>'
         f"<thead><tr><th>{esc(strs['table_source'])}</th>"
         f"<th>{esc(strs['table_last_fetched'])}</th>"
         f"<th>{esc(strs['table_status'])}</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
-
-
-def render_next_steps(missing_required: list[dict[str, Any]], lang: str) -> str:
-    s = STRINGS[lang]
-    top = missing_required[:3]
-    if not top:
-        return f'<p class="mute">{esc(s["empty_next"])}</p>'
-    items = []
-    for d in top:
-        src = d.get("source_url") or ""
-        src_html = (
-            f' <a href="{esc(src)}" target="_blank" rel="noopener">[source]</a>' if src else ""
-        )
-        items.append(
-            f"<li><strong>{esc(d.get('id'))} {esc(d.get('title'))}</strong>{src_html}"
-            f'<br><span class="mute">{esc(d.get("why_matters") or "")}</span></li>'
-        )
-    return "<ol>" + "".join(items) + "</ol>"
 
 
 def compose_body(
@@ -858,20 +1050,14 @@ def compose_body(
     return f"""
 <p class="lead">{s['lead']}</p>
 
-<h2 id="summary" class="numbered">{esc(s['section_summary'])}</h2>
-{sections['stats']}
+<h2 id="hero" class="numbered">{esc(s['section_hero'])}</h2>
+{sections['hero']}
 
-<h2 id="adopted" class="numbered">{esc(s['section_adopted'])}</h2>
-{sections['adopted']}
+<h2 id="top-actions" class="numbered">{esc(s['section_top_actions'])}</h2>
+{sections['top_actions']}
 
 <h2 id="missing" class="numbered">{esc(s['section_missing'])}</h2>
 {sections['missing']}
-
-<h2 id="not-needed" class="numbered">{esc(s['section_not_needed'])}</h2>
-{sections['not_needed']}
-
-<h2 id="unknown" class="numbered">{esc(s['section_unknown'])}</h2>
-{sections['unknown']}
 
 <h2 id="gotchas" class="numbered">{esc(s['section_gotchas'])}</h2>
 {sections['gotchas']}
@@ -879,8 +1065,15 @@ def compose_body(
 <h2 id="sources" class="numbered">{esc(s['section_sources'])}</h2>
 {sections['manifest']}
 
-<h2 id="next" class="numbered">{esc(s['section_next'])}</h2>
-{sections['next']}
+<h2 id="adopted" class="numbered">{esc(s['section_adopted'])}</h2>
+<details class="section"><summary>{esc(s['section_adopted'])} ({sections['adopted_count']})</summary>
+<div class="body">{sections['adopted']}</div></details>
+
+<h2 id="not-needed" class="numbered">{esc(s['section_not_needed'])}</h2>
+{sections['not_needed']}
+
+<h2 id="unknown" class="numbered">{esc(s['section_unknown'])}</h2>
+{sections['unknown']}
 """.strip()
 
 
@@ -1048,14 +1241,17 @@ def main() -> int:
     # 4. Compose body
     strs = STRINGS[lang]
     sections = {
-        "stats": render_stats(summary, adoption_pct, lang),
+        "hero": render_hero(summary, adoption_pct, lang),
+        "top_actions": render_top_actions(
+            missing_required, missing_recommended, triggered_gotchas, lang, k=3
+        ),
         "adopted": render_adopted_table(adopted, lang),
+        "adopted_count": len(adopted),
         "missing": render_missing(missing, lang),
         "not_needed": render_collapsed_table(not_needed, strs["collapsed_not_needed"], lang),
         "unknown": render_collapsed_table(unknown, strs["collapsed_unknown"], lang),
         "gotchas": render_gotchas(triggered_gotchas, lang),
         "manifest": render_manifest(manifest, lang),
-        "next": render_next_steps(missing_required, lang),
     }
     body_html = compose_body(args.title, sections, lang)
 
